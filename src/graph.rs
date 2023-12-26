@@ -3,6 +3,7 @@ use anyhow::{anyhow, Result};
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::hash::Hash;
 
 #[derive(Debug)]
@@ -225,6 +226,31 @@ where
 
         None
     }
+
+    pub fn bfs(&self, from: T, condition: impl Fn(&T) -> bool) -> Option<(&T, usize)> {
+        let mut visited = HashSet::new();
+
+        let mut queue = VecDeque::new();
+        queue.push_back((from, 0));
+
+        while let Some((node, depth)) = queue.pop_front() {
+            visited.insert(node);
+
+            for (next, _) in self.edges(&node) {
+                if condition(next) {
+                    return Some((next, depth + 1));
+                }
+
+                if visited.contains(next) {
+                    continue;
+                } else {
+                    queue.push_front((*next, depth + 1))
+                }
+            }
+        }
+
+        None
+    }
 }
 
 impl<T, W> Default for Graph<T, W> {
@@ -257,5 +283,19 @@ mod tests {
 
         assert_eq!(graph.dijkstra(1, 3), Some(12));
         assert_eq!(graph.dijkstra_with_path(1, 3).unwrap().0, vec![1, 4, 3]);
+    }
+
+    #[test]
+    fn test_bfs() {
+        let mut graph = Graph::default();
+
+        graph.add_edge(1, 2, 3);
+        graph.add_edge(2, 3, 10);
+
+        assert_eq!(graph.bfs(1, |x| *x == 3), Some((&3, 2)));
+
+        graph.add_edge(1, 3, 15);
+
+        assert_eq!(graph.bfs(1, |x| *x == 3), Some((&3, 1)));
     }
 }
