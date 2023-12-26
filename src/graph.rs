@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::hash::Hash;
 
 #[derive(Debug)]
-pub(crate) struct Graph<T, W> {
+pub struct Graph<T, W> {
     nodes: HashSet<T>,
     edges: HashMap<T, HashMap<T, W>>,
 
