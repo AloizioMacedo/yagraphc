@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::hash::Hash;
 
-trait Graph<T, W>
+pub trait Graph<T, W>
 where
     T: Clone + Copy + Eq + Hash + PartialEq,
     W: Clone + Copy,
@@ -49,7 +49,7 @@ where
     }
 }
 
-trait ArithmeticallyWeightedGraph<T, W>
+pub trait ArithmeticallyWeightedGraph<T, W>
 where
     T: Clone + Copy + Eq + Hash + PartialEq,
     W: Clone + Copy + std::ops::Add<Output = W> + PartialOrd + Ord + Default,
@@ -216,11 +216,11 @@ where
         Ok(())
     }
 
-    fn nodes(&self) -> impl Iterator<Item = T> + '_ {
+    fn nodes(&self) -> impl Iterator<Item = T> {
         self.nodes.iter().copied()
     }
 
-    fn edges(&self, n: &T) -> impl Iterator<Item = (T, W)> + '_ {
+    fn edges(&self, n: &T) -> impl Iterator<Item = (T, W)> {
         let edges = self.edges.get(n);
 
         if let Some(edges) = edges {
@@ -237,6 +237,13 @@ where
     W: Clone + Copy,
 {
     (*x.0, *x.1)
+}
+
+impl<T, W> ArithmeticallyWeightedGraph<T, W> for UnGraph<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy + std::ops::Add<Output = W> + PartialOrd + Ord + Default,
+{
 }
 
 struct QueueEntry<T, W>
@@ -283,133 +290,6 @@ where
     T: Clone + Copy,
     W: Ord + PartialOrd,
 {
-}
-
-impl<T, W> UnGraph<T, W>
-where
-    T: Clone + Copy + Hash + Eq + PartialEq,
-    W: Clone + Copy + std::ops::Add<Output = W> + PartialOrd + Ord + Default,
-{
-    pub fn dijkstra(&self, from: T, to: T) -> Option<W> {
-        let mut visited = HashSet::new();
-        let mut distances = HashMap::new();
-
-        distances.insert(from, W::default());
-
-        let mut queue = BinaryHeap::new();
-        queue.push(QueueEntry {
-            node: from,
-            cur_dist: W::default(),
-        });
-
-        while let Some(QueueEntry { node, cur_dist }) = queue.pop() {
-            if node == to {
-                return Some(cur_dist);
-            }
-
-            for (target, weight) in self.edges(&node) {
-                distances
-                    .entry(target)
-                    .and_modify(|dist| {
-                        let best_dist = (*dist).min(cur_dist + weight);
-                        *dist = best_dist;
-                    })
-                    .or_insert(cur_dist + weight);
-
-                if !visited.contains(&target) {
-                    queue.push(QueueEntry {
-                        node: target,
-                        cur_dist: distances[&target],
-                    })
-                }
-            }
-
-            visited.insert(node);
-        }
-
-        None
-    }
-
-    pub fn dijkstra_with_path(&self, from: T, to: T) -> Option<(Vec<T>, W)> {
-        let mut visited = HashSet::new();
-        let mut distances = HashMap::new();
-
-        distances.insert(from, (W::default(), from));
-
-        let mut queue = BinaryHeap::new();
-        queue.push(QueueEntry {
-            node: from,
-            cur_dist: W::default(),
-        });
-
-        while let Some(QueueEntry { node, cur_dist }) = queue.pop() {
-            if node == to {
-                let mut path = Vec::new();
-
-                let mut node = node;
-
-                while node != from {
-                    path.push(node);
-
-                    node = distances[&node].1;
-                }
-
-                path.push(from);
-
-                path.reverse();
-
-                return Some((path, cur_dist));
-            }
-
-            for (target, weight) in self.edges(&node) {
-                distances
-                    .entry(target)
-                    .and_modify(|(dist, previous)| {
-                        if cur_dist + weight < *dist {
-                            *dist = cur_dist + weight;
-                            *previous = node;
-                        }
-                    })
-                    .or_insert((cur_dist + weight, node));
-
-                if !visited.contains(&target) {
-                    queue.push(QueueEntry {
-                        node: target,
-                        cur_dist: distances[&target].0,
-                    })
-                }
-            }
-
-            visited.insert(node);
-        }
-
-        None
-    }
-
-    pub fn bfs(&self, from: T, condition: impl Fn(&T) -> bool) -> Option<(T, usize)> {
-        let mut visited = HashSet::new();
-
-        let mut queue = VecDeque::new();
-        queue.push_back((from, 0));
-
-        while let Some((node, depth)) = queue.pop_front() {
-            visited.insert(node);
-
-            for (next, _) in self.edges(&node) {
-                if condition(&next) {
-                    return Some((next, depth + 1));
-                }
-
-                if visited.contains(&next) {
-                    continue;
-                } else {
-                    queue.push_front((next, depth + 1))
-                }
-            }
-        }
-
-        None
-    }
 }
 
 impl<T, W> Default for UnGraph<T, W> {
