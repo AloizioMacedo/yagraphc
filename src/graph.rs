@@ -49,6 +49,52 @@ where
     }
 }
 
+struct QueueEntry<T, W>
+where
+    T: Clone + Copy,
+    W: Ord + PartialOrd,
+{
+    node: T,
+    cur_dist: W,
+}
+
+impl<T, W> Ord for QueueEntry<T, W>
+where
+    T: Clone + Copy,
+    W: Ord + PartialOrd,
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other.cur_dist.cmp(&self.cur_dist)
+    }
+}
+
+impl<T, W> PartialOrd for QueueEntry<T, W>
+where
+    T: Clone + Copy,
+    W: Ord + PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T, W> PartialEq for QueueEntry<T, W>
+where
+    T: Clone + Copy,
+    W: Ord + PartialOrd,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.cur_dist.eq(&other.cur_dist)
+    }
+}
+
+impl<T, W> Eq for QueueEntry<T, W>
+where
+    T: Clone + Copy,
+    W: Ord + PartialOrd,
+{
+}
+
 pub trait ArithmeticallyWeightedGraph<T, W>
 where
     T: Clone + Copy + Eq + Hash + PartialEq,
@@ -246,52 +292,6 @@ where
 {
 }
 
-struct QueueEntry<T, W>
-where
-    T: Clone + Copy,
-    W: Ord + PartialOrd,
-{
-    node: T,
-    cur_dist: W,
-}
-
-impl<T, W> Ord for QueueEntry<T, W>
-where
-    T: Clone + Copy,
-    W: Ord + PartialOrd,
-{
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other.cur_dist.cmp(&self.cur_dist)
-    }
-}
-
-impl<T, W> PartialOrd for QueueEntry<T, W>
-where
-    T: Clone + Copy,
-    W: Ord + PartialOrd,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<T, W> PartialEq for QueueEntry<T, W>
-where
-    T: Clone + Copy,
-    W: Ord + PartialOrd,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.cur_dist.eq(&other.cur_dist)
-    }
-}
-
-impl<T, W> Eq for QueueEntry<T, W>
-where
-    T: Clone + Copy,
-    W: Ord + PartialOrd,
-{
-}
-
 impl<T, W> Default for UnGraph<T, W> {
     fn default() -> Self {
         UnGraph {
@@ -300,6 +300,89 @@ impl<T, W> Default for UnGraph<T, W> {
             empty: HashMap::new(),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct DiGraph<T, W> {
+    nodes: HashSet<T>,
+    edges: HashMap<T, HashMap<T, W>>,
+
+    empty: HashMap<T, W>,
+}
+
+impl<T, W> Default for DiGraph<T, W> {
+    fn default() -> Self {
+        DiGraph {
+            nodes: HashSet::new(),
+            edges: HashMap::new(),
+            empty: HashMap::new(),
+        }
+    }
+}
+
+impl<T, W> Graph<T, W> for DiGraph<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy,
+{
+    fn add_edge(&mut self, from: T, to: T, weight: W) {
+        self.edges.entry(from).or_default().insert(to, weight);
+    }
+
+    fn add_node(&mut self, node: T) -> bool {
+        self.nodes.insert(node)
+    }
+
+    fn remove_edge(&mut self, from: T, to: T) -> Result<()> {
+        self.edges
+            .get_mut(&from)
+            .ok_or(anyhow!("Node not found"))?
+            .remove(&to);
+
+        Ok(())
+    }
+
+    fn remove_node(&mut self, node: T) -> Result<()> {
+        self.nodes.remove(&node);
+
+        let to_nodes: Vec<T> = self
+            .edges
+            .get(&node)
+            .ok_or(anyhow!("Node not found"))?
+            .keys()
+            .copied()
+            .collect();
+
+        for to_node in to_nodes {
+            self.edges
+                .get_mut(&to_node)
+                .ok_or(anyhow!("Node not found"))?
+                .remove(&node);
+        }
+
+        Ok(())
+    }
+
+    fn nodes(&self) -> impl Iterator<Item = T> {
+        self.nodes.iter().copied()
+    }
+
+    fn edges(&self, n: &T) -> impl Iterator<Item = (T, W)> {
+        let edges = self.edges.get(n);
+
+        if let Some(edges) = edges {
+            edges.iter().map(copy_tuple)
+        } else {
+            self.empty.iter().map(copy_tuple)
+        }
+    }
+}
+
+impl<T, W> ArithmeticallyWeightedGraph<T, W> for DiGraph<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy + std::ops::Add<Output = W> + PartialOrd + Ord + Default,
+{
 }
 
 #[cfg(test)]
@@ -322,6 +405,24 @@ mod tests {
 
         assert_eq!(graph.dijkstra(1, 3), Some(12));
         assert_eq!(graph.dijkstra_with_path(1, 3).unwrap().0, vec![1, 4, 3]);
+    }
+
+    #[test]
+    fn test_dijkstra_directed() {
+        let mut graph = DiGraph::default();
+
+        graph.add_edge(1, 2, 3);
+        graph.add_edge(2, 3, 10);
+        graph.add_edge(1, 3, 15);
+
+        assert_eq!(graph.dijkstra(1, 3), Some(13));
+        assert_eq!(graph.dijkstra(3, 1), None);
+
+        graph.add_edge(1, 4, 7);
+        graph.add_edge(4, 3, 5);
+
+        assert_eq!(graph.dijkstra(1, 3), Some(12));
+        assert_eq!(graph.dijkstra(3, 1), None);
     }
 
     #[test]
