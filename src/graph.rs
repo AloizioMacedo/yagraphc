@@ -165,12 +165,12 @@ pub struct UnGraph<T, W> {
     empty: HashMap<T, W>,
 }
 
-impl<T, W> UnGraph<T, W>
+impl<T, W> Graph<T, W> for UnGraph<T, W>
 where
     T: Clone + Copy + Hash + Eq + PartialEq,
     W: Clone + Copy,
 {
-    pub fn add_edge(&mut self, from: T, to: T, weight: W) {
+    fn add_edge(&mut self, from: T, to: T, weight: W) {
         self.edges.entry(from).or_default().insert(to, weight);
         self.edges.entry(to).or_default().insert(from, weight);
 
@@ -178,11 +178,11 @@ where
         self.nodes.insert(to);
     }
 
-    pub fn add_node(&mut self, node: T) -> bool {
+    fn add_node(&mut self, node: T) -> bool {
         self.nodes.insert(node)
     }
 
-    pub fn remove_edge(&mut self, from: T, to: T) -> Result<()> {
+    fn remove_edge(&mut self, from: T, to: T) -> Result<()> {
         self.edges
             .get_mut(&from)
             .ok_or(anyhow!("Node not found"))?
@@ -195,7 +195,7 @@ where
         Ok(())
     }
 
-    pub fn remove_node(&mut self, node: T) -> Result<()> {
+    fn remove_node(&mut self, node: T) -> Result<()> {
         self.nodes.remove(&node);
 
         let to_nodes: Vec<T> = self
@@ -216,19 +216,27 @@ where
         Ok(())
     }
 
-    pub fn nodes(&self) -> impl Iterator<Item = &T> + '_ {
-        self.nodes.iter()
+    fn nodes(&self) -> impl Iterator<Item = T> + '_ {
+        self.nodes.iter().copied()
     }
 
-    pub fn edges(&self, n: &T) -> impl Iterator<Item = (&T, &W)> + '_ {
+    fn edges(&self, n: &T) -> impl Iterator<Item = (T, W)> + '_ {
         let edges = self.edges.get(n);
 
         if let Some(edges) = edges {
-            edges.iter()
+            edges.iter().map(copy_tuple)
         } else {
-            self.empty.iter()
+            self.empty.iter().map(copy_tuple)
         }
     }
+}
+
+fn copy_tuple<T, W>(x: (&T, &W)) -> (T, W)
+where
+    T: Clone + Copy,
+    W: Clone + Copy,
+{
+    (*x.0, *x.1)
 }
 
 struct QueueEntry<T, W>
@@ -299,7 +307,7 @@ where
                 return Some(cur_dist);
             }
 
-            for (&target, &weight) in self.edges(&node) {
+            for (target, weight) in self.edges(&node) {
                 distances
                     .entry(target)
                     .and_modify(|dist| {
@@ -353,7 +361,7 @@ where
                 return Some((path, cur_dist));
             }
 
-            for (&target, &weight) in self.edges(&node) {
+            for (target, weight) in self.edges(&node) {
                 distances
                     .entry(target)
                     .and_modify(|(dist, previous)| {
@@ -378,7 +386,7 @@ where
         None
     }
 
-    pub fn bfs(&self, from: T, condition: impl Fn(&T) -> bool) -> Option<(&T, usize)> {
+    pub fn bfs(&self, from: T, condition: impl Fn(&T) -> bool) -> Option<(T, usize)> {
         let mut visited = HashSet::new();
 
         let mut queue = VecDeque::new();
@@ -388,14 +396,14 @@ where
             visited.insert(node);
 
             for (next, _) in self.edges(&node) {
-                if condition(next) {
+                if condition(&next) {
                     return Some((next, depth + 1));
                 }
 
-                if visited.contains(next) {
+                if visited.contains(&next) {
                     continue;
                 } else {
-                    queue.push_front((*next, depth + 1))
+                    queue.push_front((next, depth + 1))
                 }
             }
         }
@@ -443,10 +451,10 @@ mod tests {
         graph.add_edge(1, 2, 3);
         graph.add_edge(2, 3, 10);
 
-        assert_eq!(graph.bfs(1, |x| *x == 3), Some((&3, 2)));
+        assert_eq!(graph.bfs(1, |x| *x == 3), Some((3, 2)));
 
         graph.add_edge(1, 3, 15);
 
-        assert_eq!(graph.bfs(1, |x| *x == 3), Some((&3, 1)));
+        assert_eq!(graph.bfs(1, |x| *x == 3), Some((3, 1)));
     }
 }
