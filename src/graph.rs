@@ -47,6 +47,31 @@ where
 
         None
     }
+
+    fn dfs(&self, from: T, condition: impl Fn(&T) -> bool) -> Option<(T, usize)> {
+        let mut visited = HashSet::new();
+
+        let mut queue = VecDeque::new();
+        queue.push_back((from, 0));
+
+        while let Some((node, depth)) = queue.pop_back() {
+            visited.insert(node);
+
+            for (next, _) in self.edges(&node) {
+                if condition(&next) {
+                    return Some((next, depth + 1));
+                }
+
+                if visited.contains(&next) {
+                    continue;
+                } else {
+                    queue.push_front((next, depth + 1))
+                }
+            }
+        }
+
+        None
+    }
 }
 
 struct QueueEntry<T, W>
