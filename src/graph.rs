@@ -508,4 +508,33 @@ mod tests {
 
         assert_eq!(graph.dijkstra("a", "d").unwrap(), Finite(22.8));
     }
+
+    #[test]
+    fn test_a_star() {
+        let mut graph = DiGraph::default();
+
+        graph.add_edge(1, 2, 12);
+        graph.add_edge(2, 3, 13);
+        graph.add_edge(3, 4, 8);
+
+        graph.add_edge(1, 4, 40);
+
+        assert_eq!(graph.a_star(1, 4, |x| 4 - x).unwrap(), 33);
+    }
+
+    #[test]
+    fn test_a_star_with_path() {
+        let mut graph = DiGraph::default();
+
+        graph.add_edge(1, 2, 12);
+        graph.add_edge(2, 3, 13);
+        graph.add_edge(3, 4, 8);
+
+        graph.add_edge(1, 4, 40);
+
+        assert_eq!(
+            graph.a_star_with_path(1, 4, |x| 4 - x).unwrap().0,
+            vec![1, 2, 3, 4]
+        );
+    }
 }

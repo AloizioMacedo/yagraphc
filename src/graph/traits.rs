@@ -204,7 +204,7 @@ where
     W: Ord + PartialOrd,
 {
     pub node: T,
-    pub cur_dist: W,
+    pub cur_cost: W,
 }
 
 impl<T, W> Ord for QueueEntry<T, W>
@@ -213,7 +213,7 @@ where
     W: Ord + PartialOrd,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        other.cur_dist.cmp(&self.cur_dist)
+        other.cur_cost.cmp(&self.cur_cost)
     }
 }
 
@@ -233,7 +233,7 @@ where
     W: Ord + PartialOrd,
 {
     fn eq(&self, other: &Self) -> bool {
-        self.cur_dist.eq(&other.cur_dist)
+        self.cur_cost.eq(&other.cur_cost)
     }
 }
 
@@ -261,10 +261,14 @@ where
         let mut queue = BinaryHeap::new();
         queue.push(QueueEntry {
             node: from,
-            cur_dist: W::default(),
+            cur_cost: W::default(),
         });
 
-        while let Some(QueueEntry { node, cur_dist }) = queue.pop() {
+        while let Some(QueueEntry {
+            node,
+            cur_cost: cur_dist,
+        }) = queue.pop()
+        {
             if visited.contains(&node) {
                 continue;
             }
@@ -289,7 +293,7 @@ where
                 if !visited.contains(&target) {
                     queue.push(QueueEntry {
                         node: target,
-                        cur_dist: distance,
+                        cur_cost: distance,
                     })
                 }
             }
@@ -312,10 +316,14 @@ where
         let mut queue = BinaryHeap::new();
         queue.push(QueueEntry {
             node: from,
-            cur_dist: W::default(),
+            cur_cost: W::default(),
         });
 
-        while let Some(QueueEntry { node, cur_dist }) = queue.pop() {
+        while let Some(QueueEntry {
+            node,
+            cur_cost: cur_dist,
+        }) = queue.pop()
+        {
             if visited.contains(&node) {
                 continue;
             }
@@ -352,7 +360,127 @@ where
                 if !visited.contains(&target) {
                     queue.push(QueueEntry {
                         node: target,
-                        cur_dist: distances[&target].0,
+                        cur_cost: distances[&target].0,
+                    })
+                }
+            }
+
+            visited.insert(node);
+        }
+
+        None
+    }
+
+    fn a_star<G>(&self, from: T, to: T, heuristic: G) -> Option<W>
+    where
+        Self: Graph<T, W>,
+        G: Fn(T) -> W,
+    {
+        let mut visited = HashSet::new();
+        let mut distances = HashMap::new();
+
+        distances.insert(from, W::default());
+
+        let mut queue = BinaryHeap::new();
+        queue.push(QueueEntry {
+            node: from,
+            cur_cost: W::default() + heuristic(from),
+        });
+
+        while let Some(QueueEntry { node, .. }) = queue.pop() {
+            if visited.contains(&node) {
+                continue;
+            }
+
+            if node == to {
+                return Some(distances[&node]);
+            }
+
+            for (target, weight) in self.edges(&node) {
+                let mut distance = distances[&node] + weight;
+
+                distances
+                    .entry(target)
+                    .and_modify(|dist| {
+                        let best_dist = (*dist).min(distance);
+
+                        distance = best_dist;
+                        *dist = best_dist;
+                    })
+                    .or_insert(distance);
+
+                if !visited.contains(&target) {
+                    queue.push(QueueEntry {
+                        node: target,
+                        cur_cost: distance + heuristic(target),
+                    })
+                }
+            }
+
+            visited.insert(node);
+        }
+
+        None
+    }
+
+    fn a_star_with_path<G>(&self, from: T, to: T, heuristic: G) -> Option<(Vec<T>, W)>
+    where
+        Self: Graph<T, W>,
+        G: Fn(T) -> W,
+    {
+        let mut visited = HashSet::new();
+        let mut distances = HashMap::new();
+
+        distances.insert(from, (W::default(), from));
+
+        let mut queue = BinaryHeap::new();
+        queue.push(QueueEntry {
+            node: from,
+            cur_cost: W::default() + heuristic(from),
+        });
+
+        while let Some(QueueEntry { node, .. }) = queue.pop() {
+            if visited.contains(&node) {
+                continue;
+            }
+
+            if node == to {
+                let mut path = Vec::new();
+
+                let mut node = node;
+
+                while node != from {
+                    path.push(node);
+
+                    node = distances[&node].1;
+                }
+
+                path.push(from);
+
+                path.reverse();
+
+                return Some((path, distances[&node].0));
+            }
+
+            for (target, weight) in self.edges(&node) {
+                let mut distance = distances[&node].0 + weight;
+
+                distances
+                    .entry(target)
+                    .and_modify(|(dist, prev)| {
+                        if distance < *dist {
+                            *dist = distance;
+                            *prev = node;
+                        } else {
+                            distance = *dist
+                        }
+                    })
+                    .or_insert((distance, node));
+
+                if !visited.contains(&target) {
+                    queue.push(QueueEntry {
+                        node: target,
+                        cur_cost: distance + heuristic(target),
                     })
                 }
             }
