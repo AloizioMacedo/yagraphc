@@ -311,6 +311,12 @@ pub struct UnGraph<T, W> {
     empty: HashMap<T, W>,
 }
 
+impl<T, W> UnGraph<T, W> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 impl<T, W> Graph<T, W> for UnGraph<T, W>
 where
     T: Clone + Copy + Hash + Eq + PartialEq,
@@ -423,6 +429,12 @@ impl<T, W> Default for DiGraph<T, W> {
             edges: HashMap::new(),
             empty: HashMap::new(),
         }
+    }
+}
+
+impl<T, W> DiGraph<T, W> {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
@@ -588,5 +600,18 @@ mod tests {
         graph.add_edge("a", "d", Finite(25.3));
 
         assert_eq!(graph.dijkstra("a", "d").unwrap(), Finite(22.8));
+    }
+
+    #[test]
+    fn stress_test() {
+        let mut graph = UnGraph::default();
+
+        for i in 0..30 {
+            for j in i..30 {
+                graph.add_edge(i, j, i + j + ((20. * (i * j) as f64).cos() as i32));
+            }
+        }
+
+        println!("{:?}", graph.dijkstra_with_path(0, 20))
     }
 }
