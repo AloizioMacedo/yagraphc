@@ -662,6 +662,99 @@ where
 {
 }
 
+#[derive(Debug)]
+pub struct DiGraphVecEdge<T, W> {
+    nodes: HashSet<T>,
+    edges: HashMap<T, Vec<(T, W)>>,
+
+    empty: Vec<(T, W)>,
+}
+
+impl<T, W> Default for DiGraphVecEdge<T, W> {
+    fn default() -> Self {
+        DiGraphVecEdge {
+            nodes: HashSet::new(),
+            edges: HashMap::new(),
+            empty: Vec::new(),
+        }
+    }
+}
+
+impl<T, W> DiGraphVecEdge<T, W> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<T, W> Graph<T, W> for DiGraphVecEdge<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy,
+{
+    fn add_edge(&mut self, from: T, to: T, weight: W) {
+        self.edges.entry(from).or_default().push((to, weight));
+    }
+
+    fn add_node(&mut self, node: T) -> bool {
+        self.nodes.insert(node)
+    }
+
+    fn remove_edge(&mut self, from: T, to: T) -> Result<()> {
+        self.edges
+            .get_mut(&from)
+            .ok_or(anyhow!("Node not found"))?
+            .retain(|(node, _)| *node != to);
+
+        Ok(())
+    }
+
+    fn remove_node(&mut self, node: T) -> Result<()> {
+        self.nodes.remove(&node);
+
+        let to_nodes: Vec<(T, W)> = self
+            .edges
+            .get(&node)
+            .ok_or(anyhow!("Node not found"))?
+            .to_vec();
+
+        for (to_node, _) in to_nodes {
+            self.edges
+                .get_mut(&to_node)
+                .ok_or(anyhow!("Node not found"))?
+                .retain(|(n, _)| *n != node);
+        }
+
+        Ok(())
+    }
+
+    fn nodes(&self) -> NodeIter<'_, T> {
+        NodeIter {
+            nodes_iter: self.nodes.iter(),
+        }
+    }
+
+    fn edges(&self, n: &T) -> EdgeIterType<T, W> {
+        let edges = self.edges.get(n);
+
+        if let Some(edges) = edges {
+            EdgeIterType::EdgeIterVec(EdgeIterVec {
+                edge_iter: edges.iter(),
+            })
+        } else {
+            EdgeIterType::EdgeIterVec(EdgeIterVec {
+                edge_iter: self.empty.iter(),
+            })
+        }
+    }
+}
+
+impl<T, W> ArithmeticallyWeightedGraph<T, W> for DiGraphVecEdge<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy + std::ops::Add<Output = W> + PartialOrd + Ord + Default,
+{
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
