@@ -6,6 +6,70 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::hash::Hash;
 
+pub struct BfsIter<'a, T, W> {
+    queue: VecDeque<(T, usize)>,
+    visited: HashSet<T>,
+    graph: &'a dyn Graph<T, W>,
+}
+
+impl<'a, T, W> Iterator for BfsIter<'a, T, W>
+where
+    T: Clone + Copy + Hash + PartialEq + Eq,
+    W: Clone + Copy,
+{
+    type Item = (T, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((node, depth)) = self.queue.pop_front() {
+            self.visited.insert(node);
+
+            for (next, _) in self.graph.edges(&node) {
+                if self.visited.contains(&next) {
+                    continue;
+                } else {
+                    self.queue.push_back((next, depth + 1))
+                }
+            }
+
+            Some((node, depth))
+        } else {
+            None
+        }
+    }
+}
+
+pub struct DfsIter<'a, T, W> {
+    queue: VecDeque<(T, usize)>,
+    visited: HashSet<T>,
+    graph: &'a dyn Graph<T, W>,
+}
+
+impl<'a, T, W> Iterator for DfsIter<'a, T, W>
+where
+    T: Clone + Copy + Hash + PartialEq + Eq,
+    W: Clone + Copy,
+{
+    type Item = (T, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((node, depth)) = self.queue.pop_front() {
+            self.visited.insert(node);
+
+            for (next, _) in self.graph.edges(&node) {
+                if self.visited.contains(&next) {
+                    continue;
+                } else {
+                    self.queue.push_front((next, depth + 1))
+                }
+            }
+
+            Some((node, depth))
+        } else {
+            None
+        }
+    }
+}
+
 pub struct NodeIter<'a, T> {
     nodes_iter: std::collections::hash_set::Iter<'a, T>,
 }
@@ -52,54 +116,36 @@ where
 
     fn nodes(&self) -> NodeIter<T>;
 
-    fn bfs(&self, from: T, condition: impl Fn(&T) -> bool) -> Option<(T, usize)> {
-        let mut visited = HashSet::new();
+    fn bfs(&self, from: T) -> BfsIter<T, W>
+    where
+        Self: Sized,
+    {
+        let visited = HashSet::new();
 
         let mut queue = VecDeque::new();
-        queue.push_back((from, 0));
+        queue.push_front((from, 0));
 
-        while let Some((node, depth)) = queue.pop_front() {
-            visited.insert(node);
-
-            for (next, _) in self.edges(&node) {
-                if condition(&next) {
-                    return Some((next, depth + 1));
-                }
-
-                if visited.contains(&next) {
-                    continue;
-                } else {
-                    queue.push_front((next, depth + 1))
-                }
-            }
+        BfsIter {
+            queue,
+            visited,
+            graph: self,
         }
-
-        None
     }
 
-    fn dfs(&self, from: T, condition: impl Fn(&T) -> bool) -> Option<(T, usize)> {
-        let mut visited = HashSet::new();
+    fn dfs(&self, from: T) -> DfsIter<T, W>
+    where
+        Self: Sized,
+    {
+        let visited = HashSet::new();
 
         let mut queue = VecDeque::new();
-        queue.push_back((from, 0));
+        queue.push_front((from, 0));
 
-        while let Some((node, depth)) = queue.pop_back() {
-            visited.insert(node);
-
-            for (next, _) in self.edges(&node) {
-                if condition(&next) {
-                    return Some((next, depth + 1));
-                }
-
-                if visited.contains(&next) {
-                    continue;
-                } else {
-                    queue.push_front((next, depth + 1))
-                }
-            }
+        DfsIter {
+            queue,
+            visited,
+            graph: self,
         }
-
-        None
     }
 }
 
@@ -455,6 +501,32 @@ where
 mod tests {
     use super::*;
 
+    #[derive(Debug, PartialEq, Clone, Copy, Default)]
+    struct Finite(f64);
+
+    impl Ord for Finite {
+        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+            self.0
+                .partial_cmp(&other.0)
+                .expect("Should be finite values")
+        }
+    }
+
+    impl PartialOrd for Finite {
+        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+            Some(self.cmp(other))
+        }
+    }
+
+    impl Eq for Finite {}
+
+    impl std::ops::Add for Finite {
+        type Output = Self;
+        fn add(self, rhs: Self) -> Self::Output {
+            Self(self.0 + rhs.0)
+        }
+    }
+
     #[test]
     fn test_dijkstra() {
         let mut graph = UnGraph::default();
@@ -498,10 +570,23 @@ mod tests {
         graph.add_edge(1, 2, 3);
         graph.add_edge(2, 3, 10);
 
-        assert_eq!(graph.bfs(1, |x| *x == 3), Some((3, 2)));
+        assert_eq!(graph.bfs(1).find(|x| x.0 == 3).unwrap(), (3, 2));
 
         graph.add_edge(1, 3, 15);
 
-        assert_eq!(graph.bfs(1, |x| *x == 3), Some((3, 1)));
+        assert_eq!(graph.bfs(1).find(|x| x.0 == 3), Some((3, 1)));
+    }
+
+    #[test]
+    fn test_dijkstra_str() {
+        let mut graph = DiGraph::default();
+
+        graph.add_edge("a", "b", Finite(12.3));
+        graph.add_edge("b", "c", Finite(4.3));
+        graph.add_edge("c", "d", Finite(6.2));
+
+        graph.add_edge("a", "d", Finite(25.3));
+
+        assert_eq!(graph.dijkstra("a", "d").unwrap(), Finite(22.8));
     }
 }
