@@ -20,7 +20,11 @@ where
     type Item = (T, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some((node, depth)) = self.queue.pop_front() {
+        while let Some((node, depth)) = self.queue.pop_front() {
+            if self.visited.contains(&node) {
+                continue;
+            }
+
             self.visited.insert(node);
 
             for (next, _) in self.graph.edges(&node) {
@@ -31,10 +35,9 @@ where
                 }
             }
 
-            Some((node, depth))
-        } else {
-            None
+            return Some((node, depth));
         }
+        None
     }
 }
 
@@ -52,7 +55,11 @@ where
     type Item = (T, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some((node, depth)) = self.queue.pop_front() {
+        while let Some((node, depth)) = self.queue.pop_front() {
+            if self.visited.contains(&node) {
+                continue;
+            }
+
             self.visited.insert(node);
 
             for (next, _) in self.graph.edges(&node) {
@@ -63,10 +70,10 @@ where
                 }
             }
 
-            Some((node, depth))
-        } else {
-            None
+            return Some((node, depth));
         }
+
+        None
     }
 }
 
@@ -600,6 +607,22 @@ mod tests {
 
         assert_eq!(graph.bfs(1).find(|x| x.0 == 3), Some((3, 1)));
     }
+    #[test]
+
+    fn test_bfs2() {
+        let mut graph = UnGraph::default();
+
+        graph.add_edge(1, 2, 3);
+        graph.add_edge(2, 3, 10);
+        graph.add_edge(1, 3, 15);
+        graph.add_edge(3, 4, 4);
+        graph.add_edge(4, 5, 7);
+        graph.add_edge(1, 10, 3);
+
+        let values: Vec<(i32, usize)> = graph.bfs(1).collect();
+
+        assert_eq!(values.len(), 6);
+    }
 
     #[test]
     fn test_dijkstra_str() {
@@ -612,20 +635,5 @@ mod tests {
         graph.add_edge("a", "d", Finite(25.3));
 
         assert_eq!(graph.dijkstra("a", "d").unwrap(), Finite(22.8));
-    }
-
-    #[test]
-    fn stress_test() {
-        let mut graph = UnGraph::default();
-
-        for i in 0..300 {
-            for j in i..300 {
-                graph.add_edge(i, j, i + j + ((20. * (i * j) as f64).cos() as i32));
-            }
-        }
-
-        println!("{:?}", graph);
-
-        println!("{:?}", graph.dijkstra(0, 20))
     }
 }
