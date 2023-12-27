@@ -216,15 +216,23 @@ where
         });
 
         while let Some(QueueEntry { node, cur_dist }) = queue.pop() {
+            if visited.contains(&node) {
+                continue;
+            }
+
             if node == to {
                 return Some(cur_dist);
             }
 
             for (target, weight) in self.edges(&node) {
+                let mut distance = cur_dist + weight;
+
                 distances
                     .entry(target)
                     .and_modify(|dist| {
                         let best_dist = (*dist).min(cur_dist + weight);
+
+                        distance = best_dist;
                         *dist = best_dist;
                     })
                     .or_insert(cur_dist + weight);
@@ -232,7 +240,7 @@ where
                 if !visited.contains(&target) {
                     queue.push(QueueEntry {
                         node: target,
-                        cur_dist: distances[&target],
+                        cur_dist: distance,
                     })
                 }
             }
@@ -259,6 +267,10 @@ where
         });
 
         while let Some(QueueEntry { node, cur_dist }) = queue.pop() {
+            if visited.contains(&node) {
+                continue;
+            }
+
             if node == to {
                 let mut path = Vec::new();
 
@@ -606,12 +618,14 @@ mod tests {
     fn stress_test() {
         let mut graph = UnGraph::default();
 
-        for i in 0..30 {
-            for j in i..30 {
+        for i in 0..300 {
+            for j in i..300 {
                 graph.add_edge(i, j, i + j + ((20. * (i * j) as f64).cos() as i32));
             }
         }
 
-        println!("{:?}", graph.dijkstra_with_path(0, 20))
+        println!("{:?}", graph);
+
+        println!("{:?}", graph.dijkstra(0, 20))
     }
 }
