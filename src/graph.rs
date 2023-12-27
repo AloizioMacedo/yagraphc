@@ -91,6 +91,25 @@ where
     }
 }
 
+pub enum EdgeIterType<'a, T, W> {
+    EdgeIter(EdgeIter<'a, T, W>),
+    EdgeIterVec(EdgeIterVec<'a, T, W>),
+}
+
+impl<'a, T, W> Iterator for EdgeIterType<'a, T, W>
+where
+    T: Clone + Copy,
+    W: Clone + Copy,
+{
+    type Item = (T, W);
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            EdgeIterType::EdgeIter(iter) => iter.next(),
+            EdgeIterType::EdgeIterVec(iter) => iter.next(),
+        }
+    }
+}
+
 pub struct EdgeIter<'a, T, W> {
     edge_iter: std::collections::hash_map::Iter<'a, T, W>,
 }
@@ -103,6 +122,21 @@ where
     type Item = (T, W);
     fn next(&mut self) -> Option<Self::Item> {
         self.edge_iter.next().map(copy_tuple)
+    }
+}
+
+pub struct EdgeIterVec<'a, T, W> {
+    edge_iter: core::slice::Iter<'a, (T, W)>,
+}
+
+impl<T, W> Iterator for EdgeIterVec<'_, T, W>
+where
+    T: Clone + Copy,
+    W: Clone + Copy,
+{
+    type Item = (T, W);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.edge_iter.next().copied()
     }
 }
 
@@ -119,7 +153,7 @@ where
 
     fn remove_node(&mut self, node: T) -> Result<()>;
 
-    fn edges(&self, n: &T) -> EdgeIter<T, W>;
+    fn edges(&self, n: &T) -> EdgeIterType<T, W>;
 
     fn nodes(&self) -> NodeIter<T>;
 
@@ -393,17 +427,17 @@ where
         }
     }
 
-    fn edges(&self, n: &T) -> EdgeIter<'_, T, W> {
+    fn edges(&self, n: &T) -> EdgeIterType<'_, T, W> {
         let edges = self.edges.get(n);
 
         if let Some(edges) = edges {
-            EdgeIter {
+            EdgeIterType::EdgeIter(EdgeIter {
                 edge_iter: edges.iter(),
-            }
+            })
         } else {
-            EdgeIter {
+            EdgeIterType::EdgeIter(EdgeIter {
                 edge_iter: self.empty.iter(),
-            }
+            })
         }
     }
 }
@@ -429,6 +463,106 @@ impl<T, W> Default for UnGraph<T, W> {
             nodes: HashSet::new(),
             edges: HashMap::new(),
             empty: HashMap::new(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct UnGraphVecEdges<T, W> {
+    nodes: HashSet<T>,
+    edges: HashMap<T, Vec<(T, W)>>,
+
+    empty: Vec<(T, W)>,
+}
+
+impl<T, W> UnGraphVecEdges<T, W> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<T, W> Graph<T, W> for UnGraphVecEdges<T, W>
+where
+    T: Clone + Copy + Hash + Eq + PartialEq,
+    W: Clone + Copy,
+{
+    fn add_edge(&mut self, from: T, to: T, weight: W) {
+        self.edges.entry(from).or_default().push((to, weight));
+        self.edges.entry(to).or_default().push((from, weight));
+
+        self.nodes.insert(from);
+        self.nodes.insert(to);
+    }
+
+    fn add_node(&mut self, node: T) -> bool {
+        self.nodes.insert(node)
+    }
+
+    fn remove_edge(&mut self, from: T, to: T) -> Result<()> {
+        let edges_beginning_at_from = self.edges.get_mut(&from).ok_or(anyhow!("Node not found"))?;
+
+        edges_beginning_at_from.retain(|(target, _)| *target != to);
+
+        let edges_beginning_at_to = self.edges.get_mut(&to).ok_or(anyhow!("Node not found"))?;
+
+        edges_beginning_at_to.retain(|(target, _)| *target != from);
+
+        Ok(())
+    }
+
+    fn remove_node(&mut self, node: T) -> Result<()> {
+        self.nodes.remove(&node);
+
+        let to_nodes = self
+            .edges
+            .get(&node)
+            .ok_or(anyhow!("Node not found"))?
+            .to_vec();
+
+        for (to_node, _) in to_nodes {
+            self.edges
+                .get_mut(&to_node)
+                .ok_or(anyhow!("Node not found"))?
+                .retain(|(target, _)| *target != node);
+        }
+
+        Ok(())
+    }
+
+    fn nodes(&self) -> NodeIter<'_, T> {
+        NodeIter {
+            nodes_iter: self.nodes.iter(),
+        }
+    }
+
+    fn edges(&self, n: &T) -> EdgeIterType<'_, T, W> {
+        let edges = self.edges.get(n);
+
+        if let Some(edges) = edges {
+            EdgeIterType::EdgeIterVec(EdgeIterVec {
+                edge_iter: edges.iter(),
+            })
+        } else {
+            EdgeIterType::EdgeIterVec(EdgeIterVec {
+                edge_iter: self.empty.iter(),
+            })
+        }
+    }
+}
+
+impl<T, W> ArithmeticallyWeightedGraph<T, W> for UnGraphVecEdges<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy + std::ops::Add<Output = W> + PartialOrd + Ord + Default,
+{
+}
+
+impl<T, W> Default for UnGraphVecEdges<T, W> {
+    fn default() -> Self {
+        UnGraphVecEdges {
+            nodes: HashSet::new(),
+            edges: HashMap::new(),
+            empty: Vec::new(),
         }
     }
 }
@@ -506,17 +640,17 @@ where
         }
     }
 
-    fn edges(&self, n: &T) -> EdgeIter<T, W> {
+    fn edges(&self, n: &T) -> EdgeIterType<T, W> {
         let edges = self.edges.get(n);
 
         if let Some(edges) = edges {
-            EdgeIter {
+            EdgeIterType::EdgeIter(EdgeIter {
                 edge_iter: edges.iter(),
-            }
+            })
         } else {
-            EdgeIter {
+            EdgeIterType::EdgeIter(EdgeIter {
                 edge_iter: self.empty.iter(),
-            }
+            })
         }
     }
 }
