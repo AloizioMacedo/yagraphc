@@ -6,6 +6,35 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::hash::Hash;
 
+pub struct NodeIter<'a, T> {
+    nodes_iter: std::collections::hash_set::Iter<'a, T>,
+}
+
+impl<T> Iterator for NodeIter<'_, T>
+where
+    T: Clone + Copy,
+{
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.nodes_iter.next().copied()
+    }
+}
+
+pub struct EdgeIter<'a, T, W> {
+    edge_iter: std::collections::hash_map::Iter<'a, T, W>,
+}
+
+impl<T, W> Iterator for EdgeIter<'_, T, W>
+where
+    T: Clone + Copy,
+    W: Clone + Copy,
+{
+    type Item = (T, W);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.edge_iter.next().map(copy_tuple)
+    }
+}
+
 pub trait Graph<T, W>
 where
     T: Clone + Copy + Eq + Hash + PartialEq,
@@ -19,9 +48,9 @@ where
 
     fn remove_node(&mut self, node: T) -> Result<()>;
 
-    fn edges(&self, n: &T) -> impl Iterator<Item = (T, W)>;
+    fn edges(&self, n: &T) -> EdgeIter<T, W>;
 
-    fn nodes(&self) -> impl Iterator<Item = T>;
+    fn nodes(&self) -> NodeIter<T>;
 
     fn bfs(&self, from: T, condition: impl Fn(&T) -> bool) -> Option<(T, usize)> {
         let mut visited = HashSet::new();
@@ -287,17 +316,23 @@ where
         Ok(())
     }
 
-    fn nodes(&self) -> impl Iterator<Item = T> {
-        self.nodes.iter().copied()
+    fn nodes(&self) -> NodeIter<'_, T> {
+        NodeIter {
+            nodes_iter: self.nodes.iter(),
+        }
     }
 
-    fn edges(&self, n: &T) -> impl Iterator<Item = (T, W)> {
+    fn edges(&self, n: &T) -> EdgeIter<'_, T, W> {
         let edges = self.edges.get(n);
 
         if let Some(edges) = edges {
-            edges.iter().map(copy_tuple)
+            EdgeIter {
+                edge_iter: edges.iter(),
+            }
         } else {
-            self.empty.iter().map(copy_tuple)
+            EdgeIter {
+                edge_iter: self.empty.iter(),
+            }
         }
     }
 }
@@ -388,17 +423,23 @@ where
         Ok(())
     }
 
-    fn nodes(&self) -> impl Iterator<Item = T> {
-        self.nodes.iter().copied()
+    fn nodes(&self) -> NodeIter<'_, T> {
+        NodeIter {
+            nodes_iter: self.nodes.iter(),
+        }
     }
 
-    fn edges(&self, n: &T) -> impl Iterator<Item = (T, W)> {
+    fn edges(&self, n: &T) -> EdgeIter<T, W> {
         let edges = self.edges.get(n);
 
         if let Some(edges) = edges {
-            edges.iter().map(copy_tuple)
+            EdgeIter {
+                edge_iter: edges.iter(),
+            }
         } else {
-            self.empty.iter().map(copy_tuple)
+            EdgeIter {
+                edge_iter: self.empty.iter(),
+            }
         }
     }
 }
