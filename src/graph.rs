@@ -644,6 +644,29 @@ mod tests {
     }
 
     #[test]
+    fn test_connected_components2() {
+        let mut graph = DiGraph::default();
+
+        for i in 0..15 {
+            for j in (i + 1)..15 {
+                graph.add_edge(i, j, ())
+            }
+        }
+
+        assert_eq!(graph.connected_components().len(), 15);
+
+        let mut graph = UnGraph::default();
+
+        for i in 0..15 {
+            for j in (i + 1)..15 {
+                graph.add_edge(i, j, ())
+            }
+        }
+
+        assert_eq!(graph.connected_components().len(), 1);
+    }
+
+    #[test]
     fn test_dfs_post_order() {
         let mut graph = UnGraph::default();
 

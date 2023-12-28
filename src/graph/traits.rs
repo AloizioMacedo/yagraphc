@@ -78,8 +78,7 @@ where
 }
 
 pub struct PostOrderDfsIter<'a, T, W> {
-    pub stack: Vec<(T, usize)>,
-    pub visited: HashSet<T>,
+    pub queue: VecDeque<(T, usize)>,
     pub graph: &'a dyn Graph<T, W>,
 }
 
@@ -89,31 +88,35 @@ where
     W: Clone + Copy,
 {
     pub fn new(graph: &'a dyn Graph<T, W>, from: T) -> Self {
-        let mut stack1 = Vec::new();
-        let mut stack2 = Vec::new();
-
+        let mut queue = VecDeque::new();
         let mut visited = HashSet::new();
-        stack1.push((from, 0));
 
-        while let Some((node, depth)) = stack1.pop() {
-            if visited.contains(&node) {
-                continue;
-            }
+        dfs_post_order(graph, from, 0, &mut queue, &mut visited);
 
-            stack2.push((node, depth));
-            visited.insert(node);
-
-            for (next, _) in graph.edges(&node) {
-                stack1.push((next, depth + 1));
-            }
-        }
-
-        Self {
-            stack: stack2,
-            visited,
-            graph,
-        }
+        Self { queue, graph }
     }
+}
+
+fn dfs_post_order<T, W>(
+    graph: &dyn Graph<T, W>,
+    node: T,
+    depth: usize,
+    queue: &mut VecDeque<(T, usize)>,
+    visited: &mut HashSet<T>,
+) where
+    T: Clone + Copy + Hash + PartialEq + Eq,
+    W: Clone + Copy,
+{
+    visited.insert(node);
+    for (next, _) in graph.edges(&node) {
+        if visited.contains(&next) {
+            continue;
+        }
+
+        dfs_post_order(graph, next, depth + 1, queue, visited);
+    }
+
+    queue.push_back((node, depth));
 }
 
 impl<'a, T, W> Iterator for PostOrderDfsIter<'a, T, W>
@@ -124,7 +127,7 @@ where
     type Item = (T, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.stack.pop()
+        self.queue.pop_front()
     }
 }
 
