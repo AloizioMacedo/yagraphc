@@ -155,6 +155,8 @@ where
 
     fn edges(&self, n: &T) -> EdgeIterType<T, W>;
 
+    fn has_edge(&self, from: T, to: T) -> bool;
+
     fn nodes(&self) -> NodeIter<T>;
 
     fn bfs(&self, from: T) -> BfsIter<T, W>

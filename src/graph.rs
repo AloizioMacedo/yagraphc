@@ -93,6 +93,12 @@ where
             })
         }
     }
+
+    fn has_edge(&self, from: T, to: T) -> bool {
+        self.edges
+            .get(&from)
+            .map_or(false, |edges| edges.contains_key(&to))
+    }
 }
 
 impl<T, W> ArithmeticallyWeightedGraph<T, W> for UnGraph<T, W>
@@ -192,6 +198,12 @@ where
                 edge_iter: self.empty.iter(),
             })
         }
+    }
+
+    fn has_edge(&self, from: T, to: T) -> bool {
+        self.edges
+            .get(&from)
+            .map_or(false, |edges| edges.iter().any(|(target, _)| *target == to))
     }
 }
 
@@ -301,6 +313,12 @@ where
             })
         }
     }
+
+    fn has_edge(&self, from: T, to: T) -> bool {
+        self.edges
+            .get(&from)
+            .map_or(false, |edges| edges.contains_key(&to))
+    }
 }
 
 impl<T, W> ArithmeticallyWeightedGraph<T, W> for DiGraph<T, W>
@@ -393,6 +411,12 @@ where
                 edge_iter: self.empty.iter(),
             })
         }
+    }
+
+    fn has_edge(&self, from: T, to: T) -> bool {
+        self.edges
+            .get(&from)
+            .map_or(false, |edges| edges.iter().any(|(node, _)| *node == to))
     }
 }
 
