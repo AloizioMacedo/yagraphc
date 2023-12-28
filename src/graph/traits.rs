@@ -77,6 +77,57 @@ where
     }
 }
 
+pub struct PostOrderDfsIter<'a, T, W> {
+    pub stack: Vec<(T, usize)>,
+    pub visited: HashSet<T>,
+    pub graph: &'a dyn Graph<T, W>,
+}
+
+impl<'a, T, W> PostOrderDfsIter<'a, T, W>
+where
+    T: Clone + Copy + Hash + PartialEq + Eq,
+    W: Clone + Copy,
+{
+    pub fn new(graph: &'a dyn Graph<T, W>, from: T) -> Self {
+        let mut stack1 = Vec::new();
+        let mut stack2 = Vec::new();
+
+        let mut visited = HashSet::new();
+        stack1.push((from, 0));
+
+        while let Some((node, depth)) = stack1.pop() {
+            if visited.contains(&node) {
+                continue;
+            }
+
+            stack2.push((node, depth));
+            visited.insert(node);
+
+            for (next, _) in graph.edges(&node) {
+                stack1.push((next, depth + 1));
+            }
+        }
+
+        Self {
+            stack: stack2,
+            visited,
+            graph,
+        }
+    }
+}
+
+impl<'a, T, W> Iterator for PostOrderDfsIter<'a, T, W>
+where
+    T: Clone + Copy + Hash + PartialEq + Eq,
+    W: Clone + Copy,
+{
+    type Item = (T, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.stack.pop()
+    }
+}
+
 pub struct NodeIter<'a, T> {
     pub nodes_iter: std::collections::hash_set::Iter<'a, T>,
 }
@@ -193,65 +244,18 @@ where
         }
     }
 
+    fn dfs_post_order(&self, from: T) -> PostOrderDfsIter<T, W>
+    where
+        Self: Sized,
+    {
+        PostOrderDfsIter::new(self, from)
+    }
+
     fn connected_components(&self) -> Vec<Vec<T>>
     where
         Self: Sized,
     {
-        let mut l = VecDeque::new();
-        let mut visited = HashSet::new();
-
-        for node in self.nodes() {
-            if visited.contains(&node) {
-                continue;
-            }
-
-            let mut queue = VecDeque::new();
-            queue.push_back(node);
-
-            while let Some(current_node) = queue.pop_front() {
-                if visited.contains(&current_node) {
-                    continue;
-                }
-
-                visited.insert(current_node);
-                l.push_back(current_node);
-
-                for edge in self.edges(&current_node) {
-                    queue.push_back(edge.0);
-                }
-            }
-        }
-
-        let mut visited = HashSet::new();
-        let mut components = Vec::new();
-
-        for node in l {
-            if visited.contains(&node) {
-                continue;
-            }
-
-            let mut queue = VecDeque::new();
-            queue.push_back(node);
-
-            let mut component = vec![];
-
-            while let Some(current_node) = queue.pop_front() {
-                if visited.contains(&current_node) {
-                    continue;
-                }
-
-                visited.insert(current_node);
-                component.push(current_node);
-
-                for edge in self.in_edges(&current_node) {
-                    queue.push_back(edge.0);
-                }
-            }
-
-            components.push(component)
-        }
-
-        components
+        todo!()
     }
 }
 

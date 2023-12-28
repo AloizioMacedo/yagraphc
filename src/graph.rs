@@ -618,7 +618,7 @@ mod tests {
 
     #[test]
     fn test_connected_components() {
-        let mut graph = DiGraph::default();
+        let mut graph = UnGraph::default();
 
         graph.add_edge(1, 2, 12);
         graph.add_edge(2, 3, 13);
@@ -629,5 +629,27 @@ mod tests {
         println!("{:?}", graph.connected_components());
 
         assert_eq!(graph.connected_components().len(), 5);
+    }
+
+    #[test]
+    fn test_dfs_post_order() {
+        let mut graph = UnGraph::default();
+
+        graph.add_edge(1, 2, ());
+        graph.add_edge(1, 3, ());
+
+        graph.add_edge(2, 4, ());
+        graph.add_edge(2, 5, ());
+
+        graph.add_edge(3, 6, ());
+        graph.add_edge(6, 7, ());
+        graph.add_edge(7, 8, ());
+
+        graph.add_edge(5, 9, ());
+        graph.add_edge(5, 10, ());
+
+        let dfs_post_order: Vec<_> = graph.dfs_post_order(1).map(|x| x.0).collect();
+
+        assert_eq!(dfs_post_order.len(), 10);
     }
 }
