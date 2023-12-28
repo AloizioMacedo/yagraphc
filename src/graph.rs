@@ -80,7 +80,7 @@ where
         }
     }
 
-    fn edges(&self, n: &T) -> traits::EdgeIterType<'_, T, W> {
+    fn edges(&self, n: &T) -> traits::EdgeIterType<T, W> {
         let edges = self.edges.get(n);
 
         if let Some(edges) = edges {
@@ -92,6 +92,10 @@ where
                 edge_iter: self.empty.iter(),
             })
         }
+    }
+
+    fn in_edges(&self, n: &T) -> traits::EdgeIterType<T, W> {
+        self.edges(n)
     }
 
     fn has_edge(&self, from: T, to: T) -> bool {
@@ -186,7 +190,7 @@ where
         }
     }
 
-    fn edges(&self, n: &T) -> traits::EdgeIterType<'_, T, W> {
+    fn edges(&self, n: &T) -> traits::EdgeIterType<T, W> {
         let edges = self.edges.get(n);
 
         if let Some(edges) = edges {
@@ -198,6 +202,10 @@ where
                 edge_iter: self.empty.iter(),
             })
         }
+    }
+
+    fn in_edges(&self, n: &T) -> traits::EdgeIterType<T, W> {
+        self.edges(n)
     }
 
     fn has_edge(&self, from: T, to: T) -> bool {
@@ -228,6 +236,7 @@ impl<T, W> Default for UnGraphVecEdges<T, W> {
 pub struct DiGraph<T, W> {
     nodes: HashSet<T>,
     edges: HashMap<T, HashMap<T, W>>,
+    in_edges: HashMap<T, HashMap<T, W>>,
 
     empty: HashMap<T, W>,
 }
@@ -237,6 +246,7 @@ impl<T, W> Default for DiGraph<T, W> {
         DiGraph {
             nodes: HashSet::new(),
             edges: HashMap::new(),
+            in_edges: HashMap::new(),
             empty: HashMap::new(),
         }
     }
@@ -255,6 +265,7 @@ where
 {
     fn add_edge(&mut self, from: T, to: T, weight: W) {
         self.edges.entry(from).or_default().insert(to, weight);
+        self.in_edges.entry(to).or_default().insert(from, weight);
 
         self.add_node(from);
         self.add_node(to);
@@ -269,6 +280,10 @@ where
             .get_mut(&from)
             .ok_or(anyhow!("Node not found"))?
             .remove(&to);
+        self.in_edges
+            .get_mut(&to)
+            .ok_or(anyhow!("Node not found"))?
+            .remove(&from);
 
         Ok(())
     }
@@ -314,6 +329,20 @@ where
         }
     }
 
+    fn in_edges(&self, n: &T) -> traits::EdgeIterType<T, W> {
+        let edges = self.in_edges.get(n);
+
+        if let Some(edges) = edges {
+            traits::EdgeIterType::EdgeIter(traits::EdgeIter {
+                edge_iter: edges.iter(),
+            })
+        } else {
+            traits::EdgeIterType::EdgeIter(traits::EdgeIter {
+                edge_iter: self.empty.iter(),
+            })
+        }
+    }
+
     fn has_edge(&self, from: T, to: T) -> bool {
         self.edges
             .get(&from)
@@ -332,6 +361,7 @@ where
 pub struct DiGraphVecEdges<T, W> {
     nodes: HashSet<T>,
     edges: HashMap<T, Vec<(T, W)>>,
+    in_edges: HashMap<T, Vec<(T, W)>>,
 
     empty: Vec<(T, W)>,
 }
@@ -341,6 +371,7 @@ impl<T, W> Default for DiGraphVecEdges<T, W> {
         DiGraphVecEdges {
             nodes: HashSet::new(),
             edges: HashMap::new(),
+            in_edges: HashMap::new(),
             empty: Vec::new(),
         }
     }
@@ -359,6 +390,7 @@ where
 {
     fn add_edge(&mut self, from: T, to: T, weight: W) {
         self.edges.entry(from).or_default().push((to, weight));
+        self.edges.entry(to).or_default().push((from, weight));
     }
 
     fn add_node(&mut self, node: T) -> bool {
@@ -370,6 +402,11 @@ where
             .get_mut(&from)
             .ok_or(anyhow!("Node not found"))?
             .retain(|(node, _)| *node != to);
+
+        self.in_edges
+            .get_mut(&to)
+            .ok_or(anyhow!("Node not found"))?
+            .retain(|(node, _)| *node != from);
 
         Ok(())
     }
@@ -401,6 +438,20 @@ where
 
     fn edges(&self, n: &T) -> traits::EdgeIterType<T, W> {
         let edges = self.edges.get(n);
+
+        if let Some(edges) = edges {
+            traits::EdgeIterType::EdgeIterVec(traits::EdgeIterVec {
+                edge_iter: edges.iter(),
+            })
+        } else {
+            traits::EdgeIterType::EdgeIterVec(traits::EdgeIterVec {
+                edge_iter: self.empty.iter(),
+            })
+        }
+    }
+
+    fn in_edges(&self, n: &T) -> traits::EdgeIterType<T, W> {
+        let edges = self.in_edges.get(n);
 
         if let Some(edges) = edges {
             traits::EdgeIterType::EdgeIterVec(traits::EdgeIterVec {
@@ -577,6 +628,6 @@ mod tests {
 
         println!("{:?}", graph.connected_components());
 
-        assert_eq!(graph.connected_components().len(), 2);
+        assert_eq!(graph.connected_components().len(), 5);
     }
 }

@@ -155,6 +155,8 @@ where
 
     fn edges(&self, n: &T) -> EdgeIterType<T, W>;
 
+    fn in_edges(&self, n: &T) -> EdgeIterType<T, W>;
+
     fn has_edge(&self, from: T, to: T) -> bool;
 
     fn nodes(&self) -> NodeIter<T>;
@@ -195,22 +197,61 @@ where
     where
         Self: Sized,
     {
-        let mut comps = Vec::new();
-        let mut unvisited: HashSet<T> = HashSet::from_iter(self.nodes());
+        let mut l = VecDeque::new();
+        let mut visited = HashSet::new();
 
-        while let Some(node) = unvisited.iter().next().copied() {
-            unvisited.remove(&node);
-            let mut comp = Vec::new();
-
-            for (node_in_cc, _) in self.bfs(node) {
-                unvisited.remove(&node_in_cc);
-                comp.push(node_in_cc);
+        for node in self.nodes() {
+            if visited.contains(&node) {
+                continue;
             }
 
-            comps.push(comp);
+            let mut queue = VecDeque::new();
+            queue.push_back(node);
+
+            while let Some(current_node) = queue.pop_front() {
+                if visited.contains(&current_node) {
+                    continue;
+                }
+
+                visited.insert(current_node);
+                l.push_back(current_node);
+
+                for edge in self.edges(&current_node) {
+                    queue.push_back(edge.0);
+                }
+            }
         }
 
-        comps
+        let mut visited = HashSet::new();
+        let mut components = Vec::new();
+
+        for node in l {
+            if visited.contains(&node) {
+                continue;
+            }
+
+            let mut queue = VecDeque::new();
+            queue.push_back(node);
+
+            let mut component = vec![];
+
+            while let Some(current_node) = queue.pop_front() {
+                if visited.contains(&current_node) {
+                    continue;
+                }
+
+                visited.insert(current_node);
+                component.push(current_node);
+
+                for edge in self.in_edges(&current_node) {
+                    queue.push_back(edge.0);
+                }
+            }
+
+            components.push(component)
+        }
+
+        components
     }
 }
 
