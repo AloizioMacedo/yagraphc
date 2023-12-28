@@ -188,6 +188,28 @@ where
             graph: self,
         }
     }
+
+    fn connected_components(&self) -> Vec<Vec<T>>
+    where
+        Self: Sized,
+    {
+        let mut comps = Vec::new();
+        let mut unvisited: HashSet<T> = HashSet::from_iter(self.nodes());
+
+        while let Some(node) = unvisited.iter().next().copied() {
+            unvisited.remove(&node);
+            let mut comp = Vec::new();
+
+            for (node_in_cc, _) in self.bfs(node) {
+                unvisited.remove(&node_in_cc);
+                comp.push(node_in_cc);
+            }
+
+            comps.push(comp);
+        }
+
+        comps
+    }
 }
 
 fn copy_tuple<T, W>(x: (&T, &W)) -> (T, W)

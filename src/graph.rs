@@ -243,6 +243,9 @@ where
 {
     fn add_edge(&mut self, from: T, to: T, weight: W) {
         self.edges.entry(from).or_default().insert(to, weight);
+
+        self.add_node(from);
+        self.add_node(to);
     }
 
     fn add_node(&mut self, node: T) -> bool {
@@ -536,5 +539,20 @@ mod tests {
             graph.a_star_with_path(1, 4, |x| 4 - x).unwrap().0,
             vec![1, 2, 3, 4]
         );
+    }
+
+    #[test]
+    fn test_connected_components() {
+        let mut graph = DiGraph::default();
+
+        graph.add_edge(1, 2, 12);
+        graph.add_edge(2, 3, 13);
+        graph.add_edge(3, 4, 8);
+
+        graph.add_edge(5, 6, 40);
+
+        println!("{:?}", graph.connected_components());
+
+        assert_eq!(graph.connected_components().len(), 2);
     }
 }
