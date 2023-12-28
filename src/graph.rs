@@ -9,7 +9,7 @@ use self::traits::Graph;
 
 pub mod traits;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnGraph<T, W> {
     nodes: HashSet<T>,
     edges: HashMap<T, HashMap<T, W>>,
@@ -122,7 +122,7 @@ impl<T, W> Default for UnGraph<T, W> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnGraphVecEdges<T, W> {
     nodes: HashSet<T>,
     edges: HashMap<T, Vec<(T, W)>>,
@@ -232,7 +232,7 @@ impl<T, W> Default for UnGraphVecEdges<T, W> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DiGraph<T, W> {
     nodes: HashSet<T>,
     edges: HashMap<T, HashMap<T, W>>,
@@ -357,7 +357,7 @@ where
 {
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DiGraphVecEdges<T, W> {
     nodes: HashSet<T>,
     edges: HashMap<T, Vec<(T, W)>>,
