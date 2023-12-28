@@ -618,6 +618,20 @@ mod tests {
 
     #[test]
     fn test_connected_components() {
+        let mut graph = DiGraph::default();
+
+        graph.add_edge(1, 2, 12);
+        graph.add_edge(2, 3, 13);
+        graph.add_edge(3, 4, 8);
+
+        graph.add_edge(5, 6, 40);
+
+        assert_eq!(graph.connected_components().len(), 6);
+
+        graph.add_edge(4, 1, 8);
+
+        assert_eq!(graph.connected_components().len(), 3);
+
         let mut graph = UnGraph::default();
 
         graph.add_edge(1, 2, 12);
@@ -626,9 +640,7 @@ mod tests {
 
         graph.add_edge(5, 6, 40);
 
-        println!("{:?}", graph.connected_components());
-
-        assert_eq!(graph.connected_components().len(), 5);
+        assert_eq!(graph.connected_components().len(), 2);
     }
 
     #[test]

@@ -255,7 +255,52 @@ where
     where
         Self: Sized,
     {
-        todo!()
+        let mut visited = HashSet::new();
+        let mut stack = Vec::new();
+
+        for node in self.nodes() {
+            if visited.contains(&node) {
+                continue;
+            }
+
+            for (inner_node, _) in self.dfs_post_order(node) {
+                visited.insert(inner_node);
+                stack.push(inner_node);
+            }
+        }
+
+        stack.reverse();
+
+        let mut visited = HashSet::new();
+        let mut components = Vec::new();
+
+        for node in stack {
+            if visited.contains(&node) {
+                continue;
+            }
+
+            let mut component = Vec::new();
+
+            let mut stack = Vec::new();
+            stack.push(node);
+
+            while let Some(node) = stack.pop() {
+                if visited.contains(&node) {
+                    continue;
+                }
+
+                component.push(node);
+                visited.insert(node);
+
+                for (inner_node, _) in self.in_edges(&node) {
+                    stack.push(inner_node);
+                }
+            }
+
+            components.push(component);
+        }
+
+        components
     }
 }
 
