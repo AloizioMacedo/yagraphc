@@ -1,5 +1,3 @@
-use anyhow::{anyhow, Result};
-
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
@@ -8,6 +6,7 @@ use std::hash::Hash;
 
 use self::traits::ArithmeticallyWeightedGraph;
 use self::traits::Graph;
+use self::traits::NodeNotFound;
 
 pub mod traits;
 
@@ -154,26 +153,20 @@ where
         self.nodes.insert(node)
     }
 
-    fn remove_edge(&mut self, from: T, to: T) -> Result<()> {
-        self.edges
-            .get_mut(&from)
-            .ok_or(anyhow!("Node not found"))?
-            .remove(&to);
-        self.edges
-            .get_mut(&to)
-            .ok_or(anyhow!("Node not found"))?
-            .remove(&from);
+    fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
+        self.edges.get_mut(&from).ok_or(NodeNotFound)?.remove(&to);
+        self.edges.get_mut(&to).ok_or(NodeNotFound)?.remove(&from);
 
         Ok(())
     }
 
-    fn remove_node(&mut self, node: T) -> Result<()> {
+    fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
         self.nodes.remove(&node);
 
         let to_nodes: Vec<T> = self
             .edges
             .get(&node)
-            .ok_or(anyhow!("Node not found"))?
+            .ok_or(NodeNotFound)?
             .keys()
             .copied()
             .collect();
@@ -181,7 +174,7 @@ where
         for to_node in to_nodes {
             self.edges
                 .get_mut(&to_node)
-                .ok_or(anyhow!("Node not found"))?
+                .ok_or(NodeNotFound)?
                 .remove(&node);
         }
 
@@ -430,31 +423,27 @@ where
         self.nodes.insert(node)
     }
 
-    fn remove_edge(&mut self, from: T, to: T) -> Result<()> {
-        let edges_beginning_at_from = self.edges.get_mut(&from).ok_or(anyhow!("Node not found"))?;
+    fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
+        let edges_beginning_at_from = self.edges.get_mut(&from).ok_or(NodeNotFound)?;
 
         edges_beginning_at_from.retain(|(target, _)| *target != to);
 
-        let edges_beginning_at_to = self.edges.get_mut(&to).ok_or(anyhow!("Node not found"))?;
+        let edges_beginning_at_to = self.edges.get_mut(&to).ok_or(NodeNotFound)?;
 
         edges_beginning_at_to.retain(|(target, _)| *target != from);
 
         Ok(())
     }
 
-    fn remove_node(&mut self, node: T) -> Result<()> {
+    fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
         self.nodes.remove(&node);
 
-        let to_nodes = self
-            .edges
-            .get(&node)
-            .ok_or(anyhow!("Node not found"))?
-            .to_vec();
+        let to_nodes = self.edges.get(&node).ok_or(NodeNotFound)?.to_vec();
 
         for (to_node, _) in to_nodes {
             self.edges
                 .get_mut(&to_node)
-                .ok_or(anyhow!("Node not found"))?
+                .ok_or(NodeNotFound)?
                 .retain(|(target, _)| *target != node);
         }
 
@@ -607,26 +596,23 @@ where
         self.nodes.insert(node)
     }
 
-    fn remove_edge(&mut self, from: T, to: T) -> Result<()> {
-        self.edges
-            .get_mut(&from)
-            .ok_or(anyhow!("Node not found"))?
-            .remove(&to);
+    fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
+        self.edges.get_mut(&from).ok_or(NodeNotFound)?.remove(&to);
         self.in_edges
             .get_mut(&to)
-            .ok_or(anyhow!("Node not found"))?
+            .ok_or(NodeNotFound)?
             .remove(&from);
 
         Ok(())
     }
 
-    fn remove_node(&mut self, node: T) -> Result<()> {
+    fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
         self.nodes.remove(&node);
 
         let to_nodes: Vec<T> = self
             .edges
             .get(&node)
-            .ok_or(anyhow!("Node not found"))?
+            .ok_or(NodeNotFound)?
             .keys()
             .copied()
             .collect();
@@ -634,7 +620,7 @@ where
         for to_node in to_nodes {
             self.edges
                 .get_mut(&to_node)
-                .ok_or(anyhow!("Node not found"))?
+                .ok_or(NodeNotFound)?
                 .remove(&node);
         }
 
@@ -732,33 +718,29 @@ where
         self.nodes.insert(node)
     }
 
-    fn remove_edge(&mut self, from: T, to: T) -> Result<()> {
+    fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
         self.edges
             .get_mut(&from)
-            .ok_or(anyhow!("Node not found"))?
+            .ok_or(NodeNotFound)?
             .retain(|(node, _)| *node != to);
 
         self.in_edges
             .get_mut(&to)
-            .ok_or(anyhow!("Node not found"))?
+            .ok_or(NodeNotFound)?
             .retain(|(node, _)| *node != from);
 
         Ok(())
     }
 
-    fn remove_node(&mut self, node: T) -> Result<()> {
+    fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
         self.nodes.remove(&node);
 
-        let to_nodes: Vec<(T, W)> = self
-            .edges
-            .get(&node)
-            .ok_or(anyhow!("Node not found"))?
-            .to_vec();
+        let to_nodes: Vec<(T, W)> = self.edges.get(&node).ok_or(NodeNotFound)?.to_vec();
 
         for (to_node, _) in to_nodes {
             self.edges
                 .get_mut(&to_node)
-                .ok_or(anyhow!("Node not found"))?
+                .ok_or(NodeNotFound)?
                 .retain(|(n, _)| *n != node);
         }
 

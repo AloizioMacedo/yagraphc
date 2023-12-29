@@ -1,10 +1,14 @@
-use anyhow::Result;
-
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::hash::Hash;
+
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+#[error("node not found")]
+pub struct NodeNotFound;
 
 pub struct BfsIter<'a, T, W> {
     pub(crate) queue: VecDeque<(T, usize)>,
@@ -206,10 +210,10 @@ where
     fn add_node(&mut self, node: T) -> bool;
 
     /// Removes edge from graph. Should not remove the nodes themselves.
-    fn remove_edge(&mut self, from: T, to: T) -> Result<()>;
+    fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound>;
 
     /// Removes node from graph. Should remove all edges connected to the node.
-    fn remove_node(&mut self, node: T) -> Result<()>;
+    fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound>;
 
     /// Iterates over edges of the node as the target nodes and the edge weight.
     ///
