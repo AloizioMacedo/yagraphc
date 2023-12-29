@@ -7,9 +7,9 @@ use std::collections::VecDeque;
 use std::hash::Hash;
 
 pub struct BfsIter<'a, T, W> {
-    pub queue: VecDeque<(T, usize)>,
-    pub visited: HashSet<T>,
-    pub graph: &'a dyn Graph<T, W>,
+    pub(crate) queue: VecDeque<(T, usize)>,
+    pub(crate) visited: HashSet<T>,
+    pub(crate) graph: &'a dyn Graph<T, W>,
 }
 
 impl<'a, T, W> Iterator for BfsIter<'a, T, W>
@@ -42,9 +42,9 @@ where
 }
 
 pub struct DfsIter<'a, T, W> {
-    pub queue: VecDeque<(T, usize)>,
-    pub visited: HashSet<T>,
-    pub graph: &'a dyn Graph<T, W>,
+    pub(crate) queue: VecDeque<(T, usize)>,
+    pub(crate) visited: HashSet<T>,
+    pub(crate) graph: &'a dyn Graph<T, W>,
 }
 
 impl<'a, T, W> Iterator for DfsIter<'a, T, W>
@@ -78,8 +78,8 @@ where
 }
 
 pub struct PostOrderDfsIter<'a, T, W> {
-    pub queue: VecDeque<(T, usize)>,
-    pub graph: &'a dyn Graph<T, W>,
+    pub(crate) queue: VecDeque<(T, usize)>,
+    pub(crate) graph: &'a dyn Graph<T, W>,
 }
 
 impl<'a, T, W> PostOrderDfsIter<'a, T, W>
@@ -132,7 +132,7 @@ where
 }
 
 pub struct NodeIter<'a, T> {
-    pub nodes_iter: std::collections::hash_set::Iter<'a, T>,
+    pub(crate) nodes_iter: std::collections::hash_set::Iter<'a, T>,
 }
 
 impl<T> Iterator for NodeIter<'_, T>
@@ -165,7 +165,7 @@ where
 }
 
 pub struct EdgeIter<'a, T, W> {
-    pub edge_iter: std::collections::hash_map::Iter<'a, T, W>,
+    pub(crate) edge_iter: std::collections::hash_map::Iter<'a, T, W>,
 }
 
 impl<T, W> Iterator for EdgeIter<'_, T, W>
@@ -180,7 +180,7 @@ where
 }
 
 pub struct EdgeIterVec<'a, T, W> {
-    pub edge_iter: core::slice::Iter<'a, (T, W)>,
+    pub(crate) edge_iter: core::slice::Iter<'a, (T, W)>,
 }
 
 impl<T, W> Iterator for EdgeIterVec<'_, T, W>
