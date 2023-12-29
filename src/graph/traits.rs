@@ -1,3 +1,12 @@
+//! Traits that correspond to the main functionalities of the crate.
+//!
+//! `Graph` is the main trait for working with general graph traversal, such as
+//! BFS and DFS.
+//!
+//! `ArithmeticallyWeightedGraph` is the main trait for working with path finding,
+//! such as Dijkstra's algorithm or A*. It is also intended to handle more general
+//! algorithms that rely on arithmetical weights in the future.
+
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::collections::HashSet;
