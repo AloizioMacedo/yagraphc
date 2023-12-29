@@ -11,6 +11,9 @@ use self::traits::Graph;
 
 pub mod traits;
 
+/// Undirected graph using adjancency list as a nested HashMap.
+///
+/// Recommended for graphs that have vertices with high degree.
 #[derive(Debug, Clone)]
 pub struct UnGraph<T, W> {
     nodes: HashSet<T>,
@@ -24,10 +27,37 @@ where
     T: Clone + Copy + Hash + Eq + PartialEq,
     W: Clone + Copy,
 {
+    /// Initializes an empty undirected graph.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Finds basic cycles of the undirected graph.
+    ///
+    /// Basic cycles correspond to generators of the first homology group of the graph.
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    /// graph.add_edge(3, 4, ());
+    /// graph.add_edge(4, 1, ());
+    ///
+    /// let cycles = graph.basic_cycles();
+    /// assert_eq!(cycles.len(), 1);
+    /// assert_eq!(cycles[0].len(), 4);
+    ///
+    /// graph.remove_edge(2, 3);
+    /// let cycles = graph.basic_cycles();
+    /// assert_eq!(cycles.len(), 0);
+    /// ```
     pub fn basic_cycles(&self) -> Vec<Vec<T>> {
         let mut remaining_edges = self.all_edges();
 
@@ -74,7 +104,24 @@ where
         cycles
     }
 
-    fn all_edges(&self) -> HashSet<(T, T)> {
+    /// Gets all edges of the graph as a set.
+    ///
+    /// If edge (a, b) is returned, then (b, a) will not. The ordering of the nodes is random.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    ///
+    /// let edges = graph.all_edges();
+    /// assert_eq!(edges.len(), 2);
+    pub fn all_edges(&self) -> HashSet<(T, T)> {
         let mut edges = HashSet::new();
 
         for (origin, destinations) in &self.edges {
@@ -171,6 +218,29 @@ where
             .map_or(false, |edges| edges.contains_key(&to))
     }
 
+    /// Computes the connected components of an undirected graph.
+    ///
+    /// Relies simply on BFS to compute the components as opposed to Kosaraju's algorithm.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    /// graph.add_edge(3, 4, ());
+    ///
+    /// let components = graph.connected_components();
+    /// assert_eq!(components.len(), 1);
+    ///
+    /// graph.add_edge(5, 6, ());
+    ///
+    /// let components = graph.connected_components();
+    /// assert_eq!(components.len(), 2);
     fn connected_components(&self) -> Vec<Vec<T>>
     where
         Self: Sized,
@@ -235,6 +305,32 @@ where
         Self::default()
     }
 
+    /// Finds basic cycles of the undirected graph.
+    ///
+    /// Basic cycles correspond to generators of the first homology group of the graph.
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    /// graph.add_edge(3, 4, ());
+    /// graph.add_edge(4, 1, ());
+    ///
+    /// let cycles = graph.basic_cycles();
+    /// assert_eq!(cycles.len(), 1);
+    /// assert_eq!(cycles[0].len(), 4);
+    ///
+    /// graph.remove_edge(2, 3);
+    /// let cycles = graph.basic_cycles();
+    /// assert_eq!(cycles.len(), 0);
+    /// ```
     pub fn basic_cycles(&self) -> Vec<Vec<T>> {
         let mut remaining_edges = self.all_edges();
 
@@ -281,7 +377,24 @@ where
         cycles
     }
 
-    fn all_edges(&self) -> HashSet<(T, T)> {
+    /// Gets all edges of the graph as a set.
+    ///
+    /// If edge (a, b) is returned, then (b, a) will not. The ordering of the nodes is random.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraphVecEdges;
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraphVecEdges::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    ///
+    /// let edges = graph.all_edges();
+    /// assert_eq!(edges.len(), 2);
+    pub fn all_edges(&self) -> HashSet<(T, T)> {
         let mut edges = HashSet::new();
 
         for (origin, destinations) in &self.edges {
@@ -375,6 +488,29 @@ where
             .map_or(false, |edges| edges.iter().any(|(target, _)| *target == to))
     }
 
+    /// Computes the connected components of an undirected graph.
+    ///
+    /// Relies simply on BFS to compute the components as opposed to Kosaraju's algorithm.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraphVecEdges;
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraphVecEdges::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    /// graph.add_edge(3, 4, ());
+    ///
+    /// let components = graph.connected_components();
+    /// assert_eq!(components.len(), 1);
+    ///
+    /// graph.add_edge(5, 6, ());
+    ///
+    /// let components = graph.connected_components();
+    /// assert_eq!(components.len(), 2);
     fn connected_components(&self) -> Vec<Vec<T>>
     where
         Self: Sized,
