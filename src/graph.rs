@@ -165,6 +165,8 @@ where
             return Err(NodeNotFound);
         }
 
+        self.edges.remove_entry(&node);
+
         if let Some(nodes) = self.edges.get(&node) {
             let to_nodes = nodes.keys().copied().collect::<Vec<T>>();
 
@@ -435,6 +437,8 @@ where
             return Err(NodeNotFound);
         }
 
+        self.edges.remove_entry(&node);
+
         if let Some(nodes) = self.edges.get_mut(&node) {
             nodes.retain(|(target, _)| *target != node);
         }
@@ -599,21 +603,18 @@ where
     }
 
     fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
-        self.nodes.remove(&node);
+        if !self.nodes.remove(&node) {
+            return Err(NodeNotFound);
+        }
 
-        let to_nodes: Vec<T> = self
-            .edges
-            .get(&node)
-            .ok_or(NodeNotFound)?
-            .keys()
-            .copied()
-            .collect();
+        self.edges.remove_entry(&node);
 
-        for to_node in to_nodes {
-            self.edges
-                .get_mut(&to_node)
-                .ok_or(NodeNotFound)?
-                .remove(&node);
+        if let Some(nodes) = self.edges.get(&node) {
+            let to_nodes = nodes.keys().copied().collect::<Vec<T>>();
+
+            for to_node in to_nodes {
+                self.edges.remove_entry(&to_node);
+            }
         }
 
         Ok(())
@@ -704,6 +705,9 @@ where
     fn add_edge(&mut self, from: T, to: T, weight: W) {
         self.edges.entry(from).or_default().push((to, weight));
         self.edges.entry(to).or_default().push((from, weight));
+
+        self.nodes.insert(from);
+        self.nodes.insert(to);
     }
 
     fn add_node(&mut self, node: T) -> bool {
@@ -725,15 +729,14 @@ where
     }
 
     fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
-        self.nodes.remove(&node);
+        if !self.nodes.remove(&node) {
+            return Err(NodeNotFound);
+        }
 
-        let to_nodes: Vec<(T, W)> = self.edges.get(&node).ok_or(NodeNotFound)?.to_vec();
+        self.edges.remove_entry(&node);
 
-        for (to_node, _) in to_nodes {
-            self.edges
-                .get_mut(&to_node)
-                .ok_or(NodeNotFound)?
-                .retain(|(n, _)| *n != node);
+        if let Some(nodes) = self.edges.get_mut(&node) {
+            nodes.retain(|(target, _)| *target != node);
         }
 
         Ok(())
@@ -950,6 +953,16 @@ mod tests {
         graph.add_edge(5, 6, 40);
 
         assert_eq!(graph.connected_components().len(), 2);
+
+        let mut graph = UnGraphVecEdges::default();
+
+        graph.add_edge(1, 2, 12);
+        graph.add_edge(2, 3, 13);
+        graph.add_edge(3, 4, 8);
+
+        graph.add_edge(5, 6, 40);
+
+        assert_eq!(graph.connected_components().len(), 2);
     }
 
     #[test]
@@ -1035,10 +1048,31 @@ mod tests {
 
         let cycles = graph.basic_cycles();
         assert_eq!(cycles.len(), 1);
+
+        let mut graph = UnGraphVecEdges::default();
+
+        graph.add_edge(1, 2, ());
+        graph.add_edge(2, 3, ());
+        graph.add_edge(3, 4, ());
+        graph.add_edge(4, 1, ());
+
+        graph.add_edge(2, 5, ());
+
+        graph.add_edge(5, 6, ());
+        graph.add_edge(6, 7, ());
+        graph.add_edge(7, 5, ());
+
+        let cycles = graph.basic_cycles();
+        assert_eq!(cycles.len(), 2);
+
+        graph.remove_edge(6, 7).unwrap();
+
+        let cycles = graph.basic_cycles();
+        assert_eq!(cycles.len(), 1);
     }
 
     #[test]
-    fn ungraph_creation() {
+    fn ungraph_maintenance() {
         let mut graph = UnGraph::<i32, ()>::new();
         graph.add_node(0);
 
@@ -1046,10 +1080,16 @@ mod tests {
 
         graph.remove_node(0).unwrap();
         assert_eq!(graph.nodes().count(), 0);
+        assert!(graph.remove_node(0).is_err());
 
         assert_eq!(graph.edges(&0).count(), 0);
         assert_eq!(graph.in_edges(&0).count(), 0);
 
+        assert!(!graph.has_edge(0, 1));
+
+        graph.add_edge(0, 1, ());
+        assert!(graph.has_edge(0, 1));
+        graph.remove_node(0).unwrap();
         assert!(!graph.has_edge(0, 1));
 
         let mut graph = UnGraphVecEdges::<i32, ()>::new();
@@ -1059,10 +1099,57 @@ mod tests {
 
         graph.remove_node(0).unwrap();
         assert_eq!(graph.nodes().count(), 0);
+        assert!(graph.remove_node(0).is_err());
 
         assert_eq!(graph.edges(&0).count(), 0);
         assert_eq!(graph.in_edges(&0).count(), 0);
 
+        assert!(!graph.has_edge(0, 1));
+
+        graph.add_edge(0, 1, ());
+        assert!(graph.has_edge(0, 1));
+        graph.remove_node(0).unwrap();
+        assert!(!graph.has_edge(0, 1));
+    }
+
+    #[test]
+    fn digraph_maintenance() {
+        let mut graph = DiGraph::<i32, ()>::new();
+        graph.add_node(0);
+
+        assert_eq!(graph.nodes().count(), 1);
+
+        graph.remove_node(0).unwrap();
+        assert_eq!(graph.nodes().count(), 0);
+        assert!(graph.remove_node(0).is_err());
+
+        assert_eq!(graph.edges(&0).count(), 0);
+        assert_eq!(graph.in_edges(&0).count(), 0);
+
+        assert!(!graph.has_edge(0, 1));
+
+        graph.add_edge(0, 1, ());
+        assert!(graph.has_edge(0, 1));
+        graph.remove_node(0).unwrap();
+        assert!(!graph.has_edge(0, 1));
+
+        let mut graph = DiGraphVecEdges::<i32, ()>::new();
+        graph.add_node(0);
+
+        assert_eq!(graph.nodes().count(), 1);
+
+        graph.remove_node(0).unwrap();
+        assert_eq!(graph.nodes().count(), 0);
+        assert!(graph.remove_node(0).is_err());
+
+        assert_eq!(graph.edges(&0).count(), 0);
+        assert_eq!(graph.in_edges(&0).count(), 0);
+
+        assert!(!graph.has_edge(0, 1));
+
+        graph.add_edge(0, 1, ());
+        assert!(graph.has_edge(0, 1));
+        graph.remove_node(0).unwrap();
         assert!(!graph.has_edge(0, 1));
     }
 }
