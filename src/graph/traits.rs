@@ -199,20 +199,124 @@ where
     T: Clone + Copy + Eq + Hash + PartialEq,
     W: Clone + Copy,
 {
+    /// Adds edge to graph. Should add nodes if not present.
     fn add_edge(&mut self, from: T, to: T, weight: W);
 
+    /// Adds node to graph.
     fn add_node(&mut self, node: T) -> bool;
 
+    /// Removes edge from graph. Should not remove the nodes themselves.
     fn remove_edge(&mut self, from: T, to: T) -> Result<()>;
 
+    /// Removes node from graph. Should remove all edges connected to the node.
     fn remove_node(&mut self, node: T) -> Result<()>;
 
+    /// Iterates over edges of the node as the target nodes and the edge weight.
+    ///
+    /// If the graph is undirected, should return the nodes that are connected to it by
+    /// an edge.
+    ///
+    /// If the graph is directed, should return the outbound nodes.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use yagraphc::graph::{UnGraph, DiGraph};
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    ///
+    /// let edges = graph.edges(&2);
+    ///
+    /// assert_eq!(edges.count(), 2);
+    ///
+    /// let mut graph = DiGraph::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    ///
+    /// let edges = graph.edges(&2);
+    ///
+    /// assert_eq!(edges.count(), 1);
     fn edges(&self, n: &T) -> EdgeIterType<T, W>;
 
+    /// Iterates over inbound-edges of the node as the target nodes and the edge weight.
+    ///
+    /// If the graph is undirected, should return the nodes that are connected to it by
+    /// an edge. Thus, it is equivalent to `edges` in that case.
+    ///
+    /// If the graph is directed, should return the inbound nodes.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use yagraphc::graph::{UnGraph, DiGraph};
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    /// graph.add_edge(4, 2, ());
+    ///
+    /// let edges = graph.in_edges(&2);
+    ///
+    /// assert_eq!(edges.count(), 3);
+    ///
+    /// let mut graph = DiGraph::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    /// graph.add_edge(4, 2, ());
+    ///
+    /// let edges = graph.in_edges(&2);
+    ///
+    /// assert_eq!(edges.count(), 2);
     fn in_edges(&self, n: &T) -> EdgeIterType<T, W>;
 
+    /// Checks if there is an edge between two nodes.
+    ///
+    /// If the graph is undirected, should not take order into account.
+    ///
+    /// If the graph is direccted, takes it into consideration.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use yagraphc::graph::{UnGraph, DiGraph};
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    ///
+    /// assert!(graph.has_edge(1, 2) && graph.has_edge(2, 1));
+    ///
+    /// let mut graph = DiGraph::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    ///
+    /// assert!(graph.has_edge(1, 2) && !graph.has_edge(2, 1));
     fn has_edge(&self, from: T, to: T) -> bool;
 
+    /// Returns an iterator over all nodes.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::default();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    ///
+    /// graph.add_node(4);
+    ///
+    /// assert_eq!(graph.nodes().count(), 4);
+    ///
+    /// graph.add_node(2);
+    /// assert_eq!(graph.nodes().count(), 4);
     fn nodes(&self) -> NodeIter<T>;
 
     /// Returns an iterator of nodes in breadth-first order.
@@ -395,7 +499,8 @@ where
 
     /// Returns a list of connected components of the graph.
     ///
-    /// If being used in a directed graph, those are the strongly connected components.
+    /// If being used in a directed graph, those are the strongly connected components,
+    /// computed using Kosaraju's algorithm.
     ///
     /// # Examples
     ///
