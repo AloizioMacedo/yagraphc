@@ -81,23 +81,24 @@ where
     }
 }
 
-pub struct PostOrderDfsIter<'a, T, W> {
+pub struct PostOrderDfsIter<T> {
     pub(crate) queue: VecDeque<(T, usize)>,
-    pub(crate) graph: &'a dyn Graph<T, W>,
 }
 
-impl<'a, T, W> PostOrderDfsIter<'a, T, W>
+impl<'a, T> PostOrderDfsIter<T>
 where
     T: Clone + Copy + Hash + PartialEq + Eq,
-    W: Clone + Copy,
 {
-    pub fn new(graph: &'a dyn Graph<T, W>, from: T) -> Self {
+    pub fn new<W>(graph: &'a dyn Graph<T, W>, from: T) -> Self
+    where
+        W: Clone + Copy,
+    {
         let mut queue = VecDeque::new();
         let mut visited = HashSet::new();
 
         dfs_post_order(graph, from, 0, &mut queue, &mut visited);
 
-        Self { queue, graph }
+        Self { queue }
     }
 }
 
@@ -123,10 +124,9 @@ fn dfs_post_order<T, W>(
     queue.push_back((node, depth));
 }
 
-impl<'a, T, W> Iterator for PostOrderDfsIter<'a, T, W>
+impl<T> Iterator for PostOrderDfsIter<T>
 where
     T: Clone + Copy + Hash + PartialEq + Eq,
-    W: Clone + Copy,
 {
     type Item = (T, usize);
 
@@ -427,7 +427,7 @@ where
     ///
     /// assert!(matches!(depths[..], [6, 5, 4, 3, 2, 1] | [4, 3, 2, 6, 5, 1]));
     // TODO: Implement post-order non-recursively.
-    fn dfs_post_order(&self, from: T) -> PostOrderDfsIter<T, W>
+    fn dfs_post_order(&self, from: T) -> PostOrderDfsIter<T>
     where
         Self: Sized,
     {
