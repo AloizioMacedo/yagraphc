@@ -254,6 +254,52 @@ where
         PostOrderDfsIter::new(self, from)
     }
 
+    fn find_path(&self, from: T, to: T) -> Option<Vec<T>>
+    where
+        Self: Sized,
+    {
+        let mut visited = HashSet::new();
+        let mut pairs = HashMap::new();
+        let mut queue = VecDeque::new();
+
+        queue.push_back((from, from));
+
+        while let Some((prev, current)) = queue.pop_front() {
+            if visited.contains(&current) {
+                continue;
+            }
+            visited.insert(current);
+            pairs.insert(current, prev);
+
+            if current == to {
+                let mut node = current;
+
+                let mut path = Vec::new();
+                while node != from {
+                    path.push(node);
+
+                    node = pairs[&node];
+                }
+
+                path.push(from);
+
+                path.reverse();
+
+                return Some(path);
+            }
+
+            for (target, _) in self.edges(&current) {
+                if visited.contains(&target) {
+                    continue;
+                }
+
+                queue.push_back((current, target));
+            }
+        }
+
+        None
+    }
+
     fn connected_components(&self) -> Vec<Vec<T>>
     where
         Self: Sized,

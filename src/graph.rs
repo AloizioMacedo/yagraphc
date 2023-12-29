@@ -66,7 +66,7 @@ where
         let mut cycles = Vec::new();
 
         for edge in remaining_edges {
-            if let Some((path, _)) = spanning_forest.dijkstra_with_path(edge.0, edge.1) {
+            if let Some(path) = spanning_forest.find_path(edge.0, edge.1) {
                 cycles.push(path);
             }
         }
@@ -846,5 +846,10 @@ mod tests {
 
         let cycles = graph.basic_cycles();
         assert_eq!(cycles.len(), 2);
+
+        graph.remove_edge(6, 7).unwrap();
+
+        let cycles = graph.basic_cycles();
+        assert_eq!(cycles.len(), 1);
     }
 }
