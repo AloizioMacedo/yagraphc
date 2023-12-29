@@ -226,9 +226,74 @@ pub struct UnGraphVecEdges<T, W> {
     empty: Vec<(T, W)>,
 }
 
-impl<T, W> UnGraphVecEdges<T, W> {
+impl<T, W> UnGraphVecEdges<T, W>
+where
+    T: Clone + Copy + Hash + Eq + PartialEq,
+    W: Clone + Copy,
+{
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn basic_cycles(&self) -> Vec<Vec<T>> {
+        let mut remaining_edges = self.all_edges();
+
+        let mut spanning_forest = UnGraph::default();
+        let mut visited = HashSet::new();
+
+        for node in self.nodes() {
+            if visited.contains(&node) {
+                continue;
+            }
+
+            let mut queue = VecDeque::new();
+            queue.push_back((node, node));
+
+            while let Some((previous_node, inner_node)) = queue.pop_front() {
+                if visited.contains(&inner_node) {
+                    continue;
+                }
+
+                remaining_edges.remove(&(inner_node, previous_node));
+                remaining_edges.remove(&(previous_node, inner_node));
+                spanning_forest.add_edge(previous_node, inner_node, 1);
+
+                visited.insert(inner_node);
+
+                for (target, _) in self.edges(&inner_node) {
+                    if visited.contains(&target) {
+                        continue;
+                    }
+
+                    queue.push_back((inner_node, target));
+                }
+            }
+        }
+
+        let mut cycles = Vec::new();
+
+        for edge in remaining_edges {
+            if let Some(path) = spanning_forest.find_path(edge.0, edge.1) {
+                cycles.push(path);
+            }
+        }
+
+        cycles
+    }
+
+    fn all_edges(&self) -> HashSet<(T, T)> {
+        let mut edges = HashSet::new();
+
+        for (origin, destinations) in &self.edges {
+            for (dest, _) in destinations {
+                if edges.contains(&(*dest, *origin)) {
+                    continue;
+                }
+                edges.insert((*origin, *dest));
+            }
+        }
+
+        edges
     }
 }
 
