@@ -288,6 +288,9 @@ impl<T, W> Default for UnGraph<T, W> {
     }
 }
 
+/// Undirected graph using adjancency list as a Vec for each node.
+///
+/// Recommended for graphs that have vertices with low degree.
 #[derive(Debug, Clone)]
 pub struct UnGraphVecEdges<T, W> {
     nodes: HashSet<T>,
@@ -558,6 +561,9 @@ impl<T, W> Default for UnGraphVecEdges<T, W> {
     }
 }
 
+/// Directed graph using adjancency list as a nested HashMap.
+///
+/// Recommended for graphs that have vertices with high degree.
 #[derive(Debug, Clone)]
 pub struct DiGraph<T, W> {
     nodes: HashSet<T>,
@@ -683,6 +689,9 @@ where
 {
 }
 
+/// Directed graph using adjancency list as a Vec for each node.
+///
+/// Recommended for graphs that have vertices with low degree.
 #[derive(Debug, Clone)]
 pub struct DiGraphVecEdges<T, W> {
     nodes: HashSet<T>,
