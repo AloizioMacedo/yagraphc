@@ -103,6 +103,35 @@ where
             .get(&from)
             .map_or(false, |edges| edges.contains_key(&to))
     }
+
+    fn connected_components(&self) -> Vec<Vec<T>>
+    where
+        Self: Sized,
+    {
+        let mut visited = HashSet::new();
+        let mut components = vec![];
+
+        for node in self.nodes() {
+            if visited.contains(&node) {
+                continue;
+            }
+
+            let mut component = vec![node];
+
+            for (inner_node, _) in self.bfs(node) {
+                if visited.contains(&inner_node) {
+                    continue;
+                }
+
+                component.push(inner_node);
+                visited.insert(inner_node);
+            }
+
+            components.push(component);
+        }
+
+        components
+    }
 }
 
 impl<T, W> ArithmeticallyWeightedGraph<T, W> for UnGraph<T, W>
@@ -212,6 +241,35 @@ where
         self.edges
             .get(&from)
             .map_or(false, |edges| edges.iter().any(|(target, _)| *target == to))
+    }
+
+    fn connected_components(&self) -> Vec<Vec<T>>
+    where
+        Self: Sized,
+    {
+        let mut visited = HashSet::new();
+        let mut components = vec![];
+
+        for node in self.nodes() {
+            if visited.contains(&node) {
+                continue;
+            }
+
+            let mut component = vec![node];
+
+            for (inner_node, _) in self.bfs(node) {
+                if visited.contains(&inner_node) {
+                    continue;
+                }
+
+                component.push(inner_node);
+                visited.insert(inner_node);
+            }
+
+            components.push(component);
+        }
+
+        components
     }
 }
 
