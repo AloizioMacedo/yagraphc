@@ -2,6 +2,8 @@ use anyhow::{anyhow, Result};
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
+use std::fmt::Debug;
 use std::hash::Hash;
 
 use self::traits::ArithmeticallyWeightedGraph;
@@ -17,9 +19,74 @@ pub struct UnGraph<T, W> {
     empty: HashMap<T, W>,
 }
 
-impl<T, W> UnGraph<T, W> {
+impl<T, W> UnGraph<T, W>
+where
+    T: Clone + Copy + Hash + Eq + PartialEq,
+    W: Clone + Copy,
+{
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn basic_cycles(&self) -> Vec<Vec<T>> {
+        let mut remaining_edges = self.all_edges();
+
+        let mut spanning_forest = UnGraph::default();
+        let mut visited = HashSet::new();
+
+        for node in self.nodes() {
+            if visited.contains(&node) {
+                continue;
+            }
+
+            let mut queue = VecDeque::new();
+            queue.push_back((node, node));
+
+            while let Some((previous_node, inner_node)) = queue.pop_front() {
+                if visited.contains(&inner_node) {
+                    continue;
+                }
+
+                remaining_edges.remove(&(inner_node, previous_node));
+                remaining_edges.remove(&(previous_node, inner_node));
+                spanning_forest.add_edge(previous_node, inner_node, 1);
+
+                visited.insert(inner_node);
+
+                for (target, _) in self.edges(&inner_node) {
+                    if visited.contains(&target) {
+                        continue;
+                    }
+
+                    queue.push_back((inner_node, target));
+                }
+            }
+        }
+
+        let mut cycles = Vec::new();
+
+        for edge in remaining_edges {
+            if let Some((path, _)) = spanning_forest.dijkstra_with_path(edge.0, edge.1) {
+                cycles.push(path);
+            }
+        }
+
+        cycles
+    }
+
+    fn all_edges(&self) -> HashSet<(T, T)> {
+        let mut edges = HashSet::new();
+
+        for (origin, destinations) in &self.edges {
+            for dest in destinations.keys() {
+                if edges.contains(&(*dest, *origin)) {
+                    continue;
+                }
+                edges.insert((*origin, *dest));
+            }
+        }
+
+        edges
     }
 }
 
@@ -744,5 +811,40 @@ mod tests {
         let dfs_post_order: Vec<_> = graph.dfs_post_order(1).map(|x| x.0).collect();
 
         assert_eq!(dfs_post_order.len(), 10);
+    }
+
+    #[test]
+    fn test_cycles() {
+        let mut graph = UnGraph::default();
+
+        graph.add_edge(1, 2, ());
+        graph.add_edge(2, 3, ());
+        graph.add_edge(3, 4, ());
+
+        let cycles = graph.basic_cycles();
+        assert_eq!(cycles.len(), 0);
+
+        graph.add_edge(4, 1, ());
+        let cycles = graph.basic_cycles();
+        assert_eq!(cycles.len(), 1);
+    }
+
+    #[test]
+    fn test_cycles2() {
+        let mut graph = UnGraph::default();
+
+        graph.add_edge(1, 2, ());
+        graph.add_edge(2, 3, ());
+        graph.add_edge(3, 4, ());
+        graph.add_edge(4, 1, ());
+
+        graph.add_edge(2, 5, ());
+
+        graph.add_edge(5, 6, ());
+        graph.add_edge(6, 7, ());
+        graph.add_edge(7, 5, ());
+
+        let cycles = graph.basic_cycles();
+        assert_eq!(cycles.len(), 2);
     }
 }
