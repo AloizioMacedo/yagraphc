@@ -215,6 +215,28 @@ where
 
     fn nodes(&self) -> NodeIter<T>;
 
+    /// Returns an iterator of nodes in breadth-first order.
+    ///
+    /// Iterator includes the depth at which the nodes were found. Nodes at the
+    /// same depth might be randomly shuffled.
+    ///
+    /// # Examples
+    /// ```
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::new();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(1, 3, ());
+    /// graph.add_edge(2, 4, ());
+    /// graph.add_edge(2, 5, ());
+    ///
+    /// let bfs = graph.bfs(1);
+    ///
+    /// let depths = bfs.map(|(_, depth)| depth).collect::<Vec<_>>();
+    ///
+    /// assert_eq!(depths, vec![0, 1, 1, 2, 2]);
     fn bfs(&self, from: T) -> BfsIter<T, W>
     where
         Self: Sized,
@@ -231,6 +253,29 @@ where
         }
     }
 
+    /// Returns an iterator of nodes in depth-first order, in pre-order.
+    ///
+    /// Iterator includes the depth at which the nodes were found. Order is not
+    /// deterministic.
+    ///
+    /// # Examples
+    /// ```
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::new();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    /// graph.add_edge(3, 4, ());
+    /// graph.add_edge(1, 5, ());
+    /// graph.add_edge(5, 6, ());
+    ///
+    /// let dfs = graph.dfs(1);
+    ///
+    /// let depths = dfs.map(|(node, _)| node).collect::<Vec<_>>();
+    ///
+    /// assert!(matches!(depths[..], [1, 2, 3, 4, 5, 6] | [1, 5, 6, 2, 3, 4]));
     fn dfs(&self, from: T) -> DfsIter<T, W>
     where
         Self: Sized,
@@ -247,6 +292,33 @@ where
         }
     }
 
+    /// Returns an iterator of nodes in depth-first order, in post-order.
+    ///
+    /// Iterator includes the depth at which the nodes were found. Order is not
+    /// deterministic.
+    ///
+    /// Currently implemented recursively. To be changed to a non-recursive
+    /// implemented at some point.
+    ///
+    /// # Examples
+    /// ```
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::new();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    /// graph.add_edge(3, 4, ());
+    /// graph.add_edge(1, 5, ());
+    /// graph.add_edge(5, 6, ());
+    ///
+    /// let dfs = graph.dfs_post_order(1);
+    ///
+    /// let depths = dfs.map(|(node, _)| node).collect::<Vec<_>>();
+    ///
+    /// assert!(matches!(depths[..], [6, 5, 4, 3, 2, 1] | [4, 3, 2, 6, 5, 1]));
+    // TODO: Implement post-order non-recursively.
     fn dfs_post_order(&self, from: T) -> PostOrderDfsIter<T, W>
     where
         Self: Sized,
@@ -254,6 +326,27 @@ where
         PostOrderDfsIter::new(self, from)
     }
 
+    /// Finds path from `from` to `to` using BFS.
+    ///
+    /// Returns `None` if there is no path.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::new();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    /// graph.add_edge(3, 4, ());
+    /// graph.add_edge(1, 5, ());
+    /// graph.add_edge(5, 6, ());
+    ///
+    /// let path = graph.find_path(1, 4);
+    ///
+    /// assert_eq!(path, Some(vec![1, 2, 3, 4]));
     fn find_path(&self, from: T, to: T) -> Option<Vec<T>>
     where
         Self: Sized,
@@ -300,6 +393,41 @@ where
         None
     }
 
+    /// Returns a list of connected components of the graph.
+    ///
+    /// If being used in a directed graph, those are the strongly connected components.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::{UnGraph, DiGraph};
+    /// use yagraphc::graph::traits::Graph;
+    ///
+    /// let mut graph = UnGraph::new();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    ///
+    /// graph.add_edge(4, 5, ());
+    /// graph.add_edge(5, 6, ());
+    /// graph.add_edge(6, 4, ());
+    ///
+    /// let components = graph.connected_components();
+    ///
+    /// assert_eq!(components.len(), 2);
+    ///
+    /// let mut graph = DiGraph::new();
+    ///
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    ///
+    /// graph.add_edge(4, 5, ());
+    /// graph.add_edge(5, 6, ());
+    /// graph.add_edge(6, 4, ());
+    ///
+    /// let components = graph.connected_components();
+    ///
+    /// assert_eq!(components.len(), 4);
     fn connected_components(&self) -> Vec<Vec<T>>
     where
         Self: Sized,
@@ -412,6 +540,24 @@ where
     T: Clone + Copy + Eq + Hash + PartialEq,
     W: Clone + Copy + std::ops::Add<Output = W> + PartialOrd + Ord + Default,
 {
+    /// Returns the shortest length among paths from `from` to `to`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::ArithmeticallyWeightedGraph;
+    ///
+    /// let mut graph = UnGraph::new();
+    ///
+    /// graph.add_edge(1, 2, 1);
+    /// graph.add_edge(2, 3, 2);
+    /// graph.add_edge(3, 4, 3);
+    /// graph.add_edge(1, 4, 7);
+    ///
+    /// assert_eq!(graph.dijkstra(1, 4), Some(6));
+    /// assert_eq!(graph.dijkstra(1, 5), None);
     fn dijkstra(&self, from: T, to: T) -> Option<W>
     where
         Self: Graph<T, W>,
@@ -467,6 +613,24 @@ where
         None
     }
 
+    /// Returns the shortest path among paths from `from` to `to`, together with its length.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::ArithmeticallyWeightedGraph;
+    ///
+    /// let mut graph = UnGraph::new();
+    ///
+    /// graph.add_edge(1, 2, 1);
+    /// graph.add_edge(2, 3, 2);
+    /// graph.add_edge(3, 4, 3);
+    /// graph.add_edge(1, 4, 7);
+    ///
+    /// assert_eq!(graph.dijkstra_with_path(1, 4).unwrap().0, vec![1, 2, 3, 4]);
+    /// assert_eq!(graph.dijkstra_with_path(1, 5), None);
     fn dijkstra_with_path(&self, from: T, to: T) -> Option<(Vec<T>, W)>
     where
         Self: Graph<T, W>,
@@ -534,6 +698,26 @@ where
         None
     }
 
+    /// Returns the shortest length among paths from `from` to `to` using A*.
+    ///
+    /// `heuristic` corresponds to the heuristic function of the A* algorithm.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::ArithmeticallyWeightedGraph;
+    ///
+    /// let mut graph = UnGraph::new();
+    ///
+    /// graph.add_edge(1, 2, 1);
+    /// graph.add_edge(2, 3, 2);
+    /// graph.add_edge(3, 4, 3);
+    /// graph.add_edge(1, 4, 7);
+    ///
+    /// assert_eq!(graph.a_star(1, 4, |_| 0), Some(6));
+    /// assert_eq!(graph.a_star(1, 5, |_| 0), None);
     fn a_star<G>(&self, from: T, to: T, heuristic: G) -> Option<W>
     where
         Self: Graph<T, W>,
@@ -586,6 +770,26 @@ where
         None
     }
 
+    /// Returns the shortest path from `from` to `to` using A*, together with its length.
+    ///
+    /// `heuristic` corresponds to the heuristic function of the A* algorithm.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::ArithmeticallyWeightedGraph;
+    ///
+    /// let mut graph = UnGraph::new();
+    ///
+    /// graph.add_edge(1, 2, 1);
+    /// graph.add_edge(2, 3, 2);
+    /// graph.add_edge(3, 4, 3);
+    /// graph.add_edge(1, 4, 7);
+    ///
+    /// assert_eq!(graph.a_star_with_path(1, 4, |_| 0).unwrap().0, vec![1, 2, 3, 4]);
+    /// assert_eq!(graph.a_star_with_path(1, 5, |_| 0), None);
     fn a_star_with_path<G>(&self, from: T, to: T, heuristic: G) -> Option<(Vec<T>, W)>
     where
         Self: Graph<T, W>,
