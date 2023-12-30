@@ -932,6 +932,18 @@ mod tests {
             vec![1, 2, 3, 4]
         );
         assert!(graph.a_star_with_path(1, 10, |x| 10 - x).is_none());
+
+        let mut graph = DiGraph::default();
+
+        graph.add_edge(1, 2, 6);
+        graph.add_edge(2, 3, 10);
+        graph.add_edge(1, 3, 13);
+        graph.add_edge(3, 4, 40);
+
+        assert_eq!(
+            graph.a_star_with_path(1, 4, |_| 0).unwrap().0,
+            vec![1, 3, 4]
+        );
     }
 
     #[test]
