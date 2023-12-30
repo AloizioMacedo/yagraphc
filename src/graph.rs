@@ -5,8 +5,9 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use self::traits::ArithmeticallyWeightedGraph;
-use self::traits::Graph;
+use self::traits::GraphBuilding;
 use self::traits::NodeNotFound;
+use self::traits::Traversable;
 
 pub mod traits;
 
@@ -40,7 +41,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{Traversable, GraphBuilding};
     ///
     /// let mut graph = UnGraph::default();
     ///
@@ -111,7 +112,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{Traversable, GraphBuilding};
     ///
     /// let mut graph = UnGraph::default();
     ///
@@ -136,7 +137,7 @@ where
     }
 }
 
-impl<T, W> Graph<T, W> for UnGraph<T, W>
+impl<T, W> GraphBuilding<T, W> for UnGraph<T, W>
 where
     T: Clone + Copy + Hash + Eq + PartialEq,
     W: Clone + Copy,
@@ -174,6 +175,18 @@ where
         Ok(())
     }
 
+    fn has_edge(&self, from: T, to: T) -> bool {
+        self.edges
+            .get(&from)
+            .map_or(false, |edges| edges.contains_key(&to))
+    }
+}
+
+impl<T, W> Traversable<T, W> for UnGraph<T, W>
+where
+    T: Clone + Copy + Hash + Eq + PartialEq,
+    W: Clone + Copy,
+{
     fn nodes(&self) -> traits::NodeIter<'_, T> {
         traits::NodeIter {
             nodes_iter: self.nodes.iter(),
@@ -198,12 +211,6 @@ where
         self.edges(n)
     }
 
-    fn has_edge(&self, from: T, to: T) -> bool {
-        self.edges
-            .get(&from)
-            .map_or(false, |edges| edges.contains_key(&to))
-    }
-
     /// Computes the connected components of an undirected graph.
     ///
     /// Relies simply on BFS to compute the components as opposed to Kosaraju's algorithm.
@@ -212,7 +219,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::default();
     ///
@@ -299,7 +306,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::default();
     ///
@@ -370,7 +377,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraphVecEdges;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraphVecEdges::default();
     ///
@@ -395,7 +402,7 @@ where
     }
 }
 
-impl<T, W> Graph<T, W> for UnGraphVecEdges<T, W>
+impl<T, W> GraphBuilding<T, W> for UnGraphVecEdges<T, W>
 where
     T: Clone + Copy + Hash + Eq + PartialEq,
     W: Clone + Copy,
@@ -438,6 +445,18 @@ where
         Ok(())
     }
 
+    fn has_edge(&self, from: T, to: T) -> bool {
+        self.edges
+            .get(&from)
+            .map_or(false, |edges| edges.iter().any(|(target, _)| *target == to))
+    }
+}
+
+impl<T, W> Traversable<T, W> for UnGraphVecEdges<T, W>
+where
+    T: Clone + Copy + Hash + Eq + PartialEq,
+    W: Clone + Copy,
+{
     fn nodes(&self) -> traits::NodeIter<'_, T> {
         traits::NodeIter {
             nodes_iter: self.nodes.iter(),
@@ -462,12 +481,6 @@ where
         self.edges(n)
     }
 
-    fn has_edge(&self, from: T, to: T) -> bool {
-        self.edges
-            .get(&from)
-            .map_or(false, |edges| edges.iter().any(|(target, _)| *target == to))
-    }
-
     /// Computes the connected components of an undirected graph.
     ///
     /// Relies simply on BFS to compute the components as opposed to Kosaraju's algorithm.
@@ -476,7 +489,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraphVecEdges;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraphVecEdges::default();
     ///
@@ -557,13 +570,17 @@ impl<T, W> Default for DiGraph<T, W> {
     }
 }
 
-impl<T, W> DiGraph<T, W> {
+impl<T, W> DiGraph<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy,
+{
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl<T, W> Graph<T, W> for DiGraph<T, W>
+impl<T, W> GraphBuilding<T, W> for DiGraph<T, W>
 where
     T: Clone + Copy + Eq + Hash + PartialEq,
     W: Clone + Copy,
@@ -608,6 +625,18 @@ where
         Ok(())
     }
 
+    fn has_edge(&self, from: T, to: T) -> bool {
+        self.edges
+            .get(&from)
+            .map_or(false, |edges| edges.contains_key(&to))
+    }
+}
+
+impl<T, W> Traversable<T, W> for DiGraph<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy,
+{
     fn nodes(&self) -> traits::NodeIter<'_, T> {
         traits::NodeIter {
             nodes_iter: self.nodes.iter(),
@@ -641,12 +670,6 @@ where
             })
         }
     }
-
-    fn has_edge(&self, from: T, to: T) -> bool {
-        self.edges
-            .get(&from)
-            .map_or(false, |edges| edges.contains_key(&to))
-    }
 }
 
 impl<T, W> ArithmeticallyWeightedGraph<T, W> for DiGraph<T, W>
@@ -679,13 +702,17 @@ impl<T, W> Default for DiGraphVecEdges<T, W> {
     }
 }
 
-impl<T, W> DiGraphVecEdges<T, W> {
+impl<T, W> DiGraphVecEdges<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy,
+{
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl<T, W> Graph<T, W> for DiGraphVecEdges<T, W>
+impl<T, W> GraphBuilding<T, W> for DiGraphVecEdges<T, W>
 where
     T: Clone + Copy + Eq + Hash + PartialEq,
     W: Clone + Copy,
@@ -734,6 +761,18 @@ where
         Ok(())
     }
 
+    fn has_edge(&self, from: T, to: T) -> bool {
+        self.edges
+            .get(&from)
+            .map_or(false, |edges| edges.iter().any(|(node, _)| *node == to))
+    }
+}
+
+impl<T, W> Traversable<T, W> for DiGraphVecEdges<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy,
+{
     fn nodes(&self) -> traits::NodeIter<'_, T> {
         traits::NodeIter {
             nodes_iter: self.nodes.iter(),
@@ -766,12 +805,6 @@ where
                 edge_iter: self.empty.iter(),
             })
         }
-    }
-
-    fn has_edge(&self, from: T, to: T) -> bool {
-        self.edges
-            .get(&from)
-            .map_or(false, |edges| edges.iter().any(|(node, _)| *node == to))
     }
 }
 

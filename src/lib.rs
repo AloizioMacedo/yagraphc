@@ -11,8 +11,8 @@
 //! ## Example
 //!
 //! ```rust
+//! use yagraphc::prelude::*;
 //! use yagraphc::graph::UnGraph;
-//! use yagraphc::graph::traits::{ArithmeticallyWeightedGraph, Graph};
 //!
 //! let mut graph = UnGraph::default();
 //!
@@ -25,3 +25,22 @@
 //! ```
 
 pub mod graph;
+
+pub mod prelude {
+    pub use super::graph::traits::ArithmeticallyWeightedGraph;
+    pub use super::graph::traits::GraphBuilding;
+    pub use super::graph::traits::Traversable;
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_prelude() {
+        use crate::graph::UnGraph;
+        use crate::prelude::*;
+
+        let mut graph = UnGraph::default();
+        graph.add_edge(1, 2, ());
+    }
+}
