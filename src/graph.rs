@@ -601,6 +601,10 @@ where
             edges.remove(&node);
         }
 
+        for edges in self.in_edges.values_mut() {
+            edges.remove(&node);
+        }
+
         Ok(())
     }
 
@@ -720,6 +724,10 @@ where
         self.edges.remove_entry(&node);
 
         for edges in self.edges.values_mut() {
+            edges.retain(|(target, _)| *target != node);
+        }
+
+        for edges in self.in_edges.values_mut() {
             edges.retain(|(target, _)| *target != node);
         }
 
@@ -1124,6 +1132,26 @@ mod tests {
         assert!(graph.nodes().any(|x| x == 0));
         assert!(graph.nodes().any(|x| x == 1));
 
+        graph.add_edge(3, 4, ());
+        graph.add_edge(4, 5, ());
+        graph.add_edge(4, 6, ());
+
+        assert!(graph.has_edge(3, 4));
+        assert!(graph.has_edge(4, 5));
+        assert!(graph.has_edge(4, 6));
+        assert!(!graph.has_edge(4, 3));
+        assert!(!graph.has_edge(5, 4));
+        assert!(!graph.has_edge(6, 4));
+
+        assert_eq!(graph.edges(&4).count(), 2);
+        assert_eq!(graph.in_edges(&4).count(), 1);
+
+        graph.remove_node(4).unwrap();
+
+        assert!(!graph.has_edge(3, 4));
+        assert!(!graph.has_edge(4, 5));
+        assert!(!graph.has_edge(4, 6));
+
         let mut graph = DiGraphVecEdges::<i32, ()>::new();
         graph.add_node(0);
 
@@ -1149,5 +1177,25 @@ mod tests {
         assert!(!graph.has_edge(0, 1));
         assert!(graph.nodes().any(|x| x == 0));
         assert!(graph.nodes().any(|x| x == 1));
+
+        graph.add_edge(3, 4, ());
+        graph.add_edge(4, 5, ());
+        graph.add_edge(4, 6, ());
+
+        assert!(graph.has_edge(3, 4));
+        assert!(graph.has_edge(4, 5));
+        assert!(graph.has_edge(4, 6));
+        assert!(!graph.has_edge(4, 3));
+        assert!(!graph.has_edge(5, 4));
+        assert!(!graph.has_edge(6, 4));
+
+        assert_eq!(graph.edges(&4).count(), 2);
+        assert_eq!(graph.in_edges(&4).count(), 1);
+
+        graph.remove_node(4).unwrap();
+
+        assert!(!graph.has_edge(3, 4));
+        assert!(!graph.has_edge(4, 5));
+        assert!(!graph.has_edge(4, 6));
     }
 }
