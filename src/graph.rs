@@ -786,32 +786,6 @@ where
 mod tests {
     use super::*;
 
-    #[derive(Debug, PartialEq, Clone, Copy, Default)]
-    struct Finite(f64);
-
-    impl Ord for Finite {
-        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-            self.0
-                .partial_cmp(&other.0)
-                .expect("Should be finite values")
-        }
-    }
-
-    impl PartialOrd for Finite {
-        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-            Some(self.cmp(other))
-        }
-    }
-
-    impl Eq for Finite {}
-
-    impl std::ops::Add for Finite {
-        type Output = Self;
-        fn add(self, rhs: Self) -> Self::Output {
-            Self(self.0 + rhs.0)
-        }
-    }
-
     #[test]
     fn test_dijkstra() {
         let mut graph = UnGraph::default();
@@ -882,13 +856,13 @@ mod tests {
     fn test_dijkstra_str() {
         let mut graph = DiGraph::default();
 
-        graph.add_edge("a", "b", Finite(12.3));
-        graph.add_edge("b", "c", Finite(4.3));
-        graph.add_edge("c", "d", Finite(6.2));
+        graph.add_edge("a", "b", 123);
+        graph.add_edge("b", "c", 43);
+        graph.add_edge("c", "d", 62);
 
-        graph.add_edge("a", "d", Finite(25.3));
+        graph.add_edge("a", "d", 253);
 
-        assert_eq!(graph.dijkstra("a", "d").unwrap(), Finite(22.8));
+        assert_eq!(graph.dijkstra("a", "d").unwrap(), 228);
     }
 
     #[test]
