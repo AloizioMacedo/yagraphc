@@ -784,6 +784,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::*;
 
     #[test]
@@ -802,6 +804,9 @@ mod tests {
 
         assert_eq!(graph.dijkstra(1, 3), Some(12));
         assert_eq!(graph.dijkstra_with_path(1, 3).unwrap().0, vec![1, 4, 3]);
+
+        assert!(graph.dijkstra(1, 9).is_none());
+        assert!(graph.dijkstra_with_path(1, 9).is_none());
     }
 
     #[test]
@@ -835,8 +840,22 @@ mod tests {
 
         assert_eq!(graph.bfs(1).find(|x| x.0 == 3), Some((3, 1)));
     }
-    #[test]
 
+    #[test]
+    fn test_dfs() {
+        let mut graph = UnGraph::default();
+
+        graph.add_edge(1, 2, 3);
+        graph.add_edge(2, 3, 10);
+
+        assert_eq!(graph.dfs(1).find(|x| x.0 == 3).unwrap(), (3, 2));
+
+        graph.add_edge(1, 3, 15);
+
+        assert_eq!(graph.dfs(1).count(), 3);
+    }
+
+    #[test]
     fn test_bfs2() {
         let mut graph = UnGraph::default();
 
@@ -850,6 +869,25 @@ mod tests {
         let values: Vec<(i32, usize)> = graph.bfs(1).collect();
 
         assert_eq!(values.len(), 6);
+    }
+
+    #[test]
+    fn test_find_path() {
+        let mut graph = UnGraph::default();
+
+        graph.add_edge(1, 2, ());
+        graph.add_edge(2, 3, ());
+        graph.add_edge(3, 4, ());
+
+        graph.add_edge(1, 5, ());
+        graph.add_edge(5, 3, ());
+        graph.add_edge(3, 4, ());
+
+        let path = graph.find_path(1, 4).unwrap();
+
+        assert_eq!(path.len(), 4);
+
+        assert!(graph.find_path(1, 7).is_none());
     }
 
     #[test]
@@ -876,6 +914,7 @@ mod tests {
         graph.add_edge(1, 4, 40);
 
         assert_eq!(graph.a_star(1, 4, |x| 4 - x).unwrap(), 33);
+        assert!(graph.a_star(1, 10, |x| 10 - x).is_none());
     }
 
     #[test]
@@ -892,6 +931,7 @@ mod tests {
             graph.a_star_with_path(1, 4, |x| 4 - x).unwrap().0,
             vec![1, 2, 3, 4]
         );
+        assert!(graph.a_star_with_path(1, 10, |x| 10 - x).is_none());
     }
 
     #[test]
