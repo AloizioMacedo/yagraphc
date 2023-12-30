@@ -167,12 +167,8 @@ where
 
         self.edges.remove_entry(&node);
 
-        if let Some(nodes) = self.edges.get(&node) {
-            let to_nodes = nodes.keys().copied().collect::<Vec<T>>();
-
-            for to_node in to_nodes {
-                self.edges.remove_entry(&to_node);
-            }
+        for edges in self.edges.values_mut() {
+            edges.remove(&node);
         }
 
         Ok(())
@@ -246,10 +242,6 @@ where
             let mut component = vec![node];
 
             for (inner_node, _) in self.bfs(node) {
-                if visited.contains(&inner_node) {
-                    continue;
-                }
-
                 component.push(inner_node);
                 visited.insert(inner_node);
             }
@@ -439,8 +431,8 @@ where
 
         self.edges.remove_entry(&node);
 
-        if let Some(nodes) = self.edges.get_mut(&node) {
-            nodes.retain(|(target, _)| *target != node);
+        for edges in self.edges.values_mut() {
+            edges.retain(|(target, _)| *target != node);
         }
 
         Ok(())
@@ -514,10 +506,6 @@ where
             let mut component = vec![node];
 
             for (inner_node, _) in self.bfs(node) {
-                if visited.contains(&inner_node) {
-                    continue;
-                }
-
                 component.push(inner_node);
                 visited.insert(inner_node);
             }
@@ -609,12 +597,8 @@ where
 
         self.edges.remove_entry(&node);
 
-        if let Some(nodes) = self.edges.get(&node) {
-            let to_nodes = nodes.keys().copied().collect::<Vec<T>>();
-
-            for to_node in to_nodes {
-                self.edges.remove_entry(&to_node);
-            }
+        for edges in self.edges.values_mut() {
+            edges.remove(&node);
         }
 
         Ok(())
@@ -735,8 +719,8 @@ where
 
         self.edges.remove_entry(&node);
 
-        if let Some(nodes) = self.edges.get_mut(&node) {
-            nodes.retain(|(target, _)| *target != node);
+        for edges in self.edges.values_mut() {
+            edges.retain(|(target, _)| *target != node);
         }
 
         Ok(())
