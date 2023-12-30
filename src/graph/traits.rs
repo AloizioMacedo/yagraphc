@@ -206,6 +206,22 @@ where
     }
 }
 
+pub trait GraphBuilding<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy,
+{
+    fn add_edge(&mut self, from: T, to: T, weight: W);
+
+    fn add_node(&mut self, node: T) -> bool;
+
+    fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound>;
+
+    fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound>;
+
+    fn has_edge(&self, from: T, to: T) -> bool;
+}
+
 pub trait Traversable<T, W>
 where
     T: Clone + Copy + Eq + Hash + PartialEq,
@@ -221,7 +237,7 @@ where
     /// # Examples
     /// ```rust
     /// use yagraphc::graph::{UnGraph, DiGraph};
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::default();
     ///
@@ -252,7 +268,7 @@ where
     /// # Examples
     /// ```rust
     /// use yagraphc::graph::{UnGraph, DiGraph};
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::default();
     ///
@@ -280,7 +296,7 @@ where
     /// # Examples
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::default();
     ///
@@ -303,7 +319,7 @@ where
     /// # Examples
     /// ```
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::new();
     ///
@@ -341,7 +357,7 @@ where
     /// # Examples
     /// ```
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::new();
     ///
@@ -383,7 +399,7 @@ where
     /// # Examples
     /// ```
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::new();
     ///
@@ -414,7 +430,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::new();
     ///
@@ -482,7 +498,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::{UnGraph, DiGraph};
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::new();
     ///
@@ -627,7 +643,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     /// use yagraphc::graph::traits::ArithmeticallyWeightedGraph;
     ///
     /// let mut graph = UnGraph::new();
@@ -700,7 +716,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     /// use yagraphc::graph::traits::ArithmeticallyWeightedGraph;
     ///
     /// let mut graph = UnGraph::new();
@@ -787,7 +803,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     /// use yagraphc::graph::traits::ArithmeticallyWeightedGraph;
     ///
     /// let mut graph = UnGraph::new();
@@ -859,7 +875,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     /// use yagraphc::graph::traits::ArithmeticallyWeightedGraph;
     ///
     /// let mut graph = UnGraph::new();

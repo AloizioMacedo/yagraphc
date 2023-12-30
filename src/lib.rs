@@ -12,7 +12,7 @@
 //!
 //! ```rust
 //! use yagraphc::graph::UnGraph;
-//! use yagraphc::graph::traits::{ArithmeticallyWeightedGraph, Graph};
+//! use yagraphc::graph::traits::{ArithmeticallyWeightedGraph, GraphBuilding, Traversable};
 //!
 //! let mut graph = UnGraph::default();
 //!

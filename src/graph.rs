@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use self::traits::ArithmeticallyWeightedGraph;
+use self::traits::GraphBuilding;
 use self::traits::NodeNotFound;
 use self::traits::Traversable;
 
@@ -31,45 +32,6 @@ where
         Self::default()
     }
 
-    pub fn add_edge(&mut self, from: T, to: T, weight: W) {
-        self.edges.entry(from).or_default().insert(to, weight);
-        self.edges.entry(to).or_default().insert(from, weight);
-
-        self.nodes.insert(from);
-        self.nodes.insert(to);
-    }
-
-    pub fn add_node(&mut self, node: T) -> bool {
-        self.nodes.insert(node)
-    }
-
-    pub fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
-        self.edges.get_mut(&from).ok_or(NodeNotFound)?.remove(&to);
-        self.edges.get_mut(&to).ok_or(NodeNotFound)?.remove(&from);
-
-        Ok(())
-    }
-
-    pub fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
-        if !self.nodes.remove(&node) {
-            return Err(NodeNotFound);
-        }
-
-        self.edges.remove_entry(&node);
-
-        for edges in self.edges.values_mut() {
-            edges.remove(&node);
-        }
-
-        Ok(())
-    }
-
-    pub fn has_edge(&self, from: T, to: T) -> bool {
-        self.edges
-            .get(&from)
-            .map_or(false, |edges| edges.contains_key(&to))
-    }
-
     /// Finds basic cycles of the undirected graph.
     ///
     /// Basic cycles correspond to generators of the first homology group of the graph.
@@ -79,7 +41,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{Traversable, GraphBuilding};
     ///
     /// let mut graph = UnGraph::default();
     ///
@@ -150,7 +112,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{Traversable, GraphBuilding};
     ///
     /// let mut graph = UnGraph::default();
     ///
@@ -172,6 +134,51 @@ where
         }
 
         edges
+    }
+}
+
+impl<T, W> GraphBuilding<T, W> for UnGraph<T, W>
+where
+    T: Clone + Copy + Hash + Eq + PartialEq,
+    W: Clone + Copy,
+{
+    fn add_edge(&mut self, from: T, to: T, weight: W) {
+        self.edges.entry(from).or_default().insert(to, weight);
+        self.edges.entry(to).or_default().insert(from, weight);
+
+        self.nodes.insert(from);
+        self.nodes.insert(to);
+    }
+
+    fn add_node(&mut self, node: T) -> bool {
+        self.nodes.insert(node)
+    }
+
+    fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
+        self.edges.get_mut(&from).ok_or(NodeNotFound)?.remove(&to);
+        self.edges.get_mut(&to).ok_or(NodeNotFound)?.remove(&from);
+
+        Ok(())
+    }
+
+    fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
+        if !self.nodes.remove(&node) {
+            return Err(NodeNotFound);
+        }
+
+        self.edges.remove_entry(&node);
+
+        for edges in self.edges.values_mut() {
+            edges.remove(&node);
+        }
+
+        Ok(())
+    }
+
+    fn has_edge(&self, from: T, to: T) -> bool {
+        self.edges
+            .get(&from)
+            .map_or(false, |edges| edges.contains_key(&to))
     }
 }
 
@@ -212,7 +219,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::default();
     ///
@@ -290,50 +297,6 @@ where
         Self::default()
     }
 
-    pub fn add_edge(&mut self, from: T, to: T, weight: W) {
-        self.edges.entry(from).or_default().push((to, weight));
-        self.edges.entry(to).or_default().push((from, weight));
-
-        self.nodes.insert(from);
-        self.nodes.insert(to);
-    }
-
-    pub fn add_node(&mut self, node: T) -> bool {
-        self.nodes.insert(node)
-    }
-
-    pub fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
-        let edges_beginning_at_from = self.edges.get_mut(&from).ok_or(NodeNotFound)?;
-
-        edges_beginning_at_from.retain(|(target, _)| *target != to);
-
-        let edges_beginning_at_to = self.edges.get_mut(&to).ok_or(NodeNotFound)?;
-
-        edges_beginning_at_to.retain(|(target, _)| *target != from);
-
-        Ok(())
-    }
-
-    pub fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
-        if !self.nodes.remove(&node) {
-            return Err(NodeNotFound);
-        }
-
-        self.edges.remove_entry(&node);
-
-        for edges in self.edges.values_mut() {
-            edges.retain(|(target, _)| *target != node);
-        }
-
-        Ok(())
-    }
-
-    pub fn has_edge(&self, from: T, to: T) -> bool {
-        self.edges
-            .get(&from)
-            .map_or(false, |edges| edges.iter().any(|(target, _)| *target == to))
-    }
-
     /// Finds basic cycles of the undirected graph.
     ///
     /// Basic cycles correspond to generators of the first homology group of the graph.
@@ -343,7 +306,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraph;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraph::default();
     ///
@@ -414,7 +377,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraphVecEdges;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraphVecEdges::default();
     ///
@@ -436,6 +399,56 @@ where
         }
 
         edges
+    }
+}
+
+impl<T, W> GraphBuilding<T, W> for UnGraphVecEdges<T, W>
+where
+    T: Clone + Copy + Hash + Eq + PartialEq,
+    W: Clone + Copy,
+{
+    fn add_edge(&mut self, from: T, to: T, weight: W) {
+        self.edges.entry(from).or_default().push((to, weight));
+        self.edges.entry(to).or_default().push((from, weight));
+
+        self.nodes.insert(from);
+        self.nodes.insert(to);
+    }
+
+    fn add_node(&mut self, node: T) -> bool {
+        self.nodes.insert(node)
+    }
+
+    fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
+        let edges_beginning_at_from = self.edges.get_mut(&from).ok_or(NodeNotFound)?;
+
+        edges_beginning_at_from.retain(|(target, _)| *target != to);
+
+        let edges_beginning_at_to = self.edges.get_mut(&to).ok_or(NodeNotFound)?;
+
+        edges_beginning_at_to.retain(|(target, _)| *target != from);
+
+        Ok(())
+    }
+
+    fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
+        if !self.nodes.remove(&node) {
+            return Err(NodeNotFound);
+        }
+
+        self.edges.remove_entry(&node);
+
+        for edges in self.edges.values_mut() {
+            edges.retain(|(target, _)| *target != node);
+        }
+
+        Ok(())
+    }
+
+    fn has_edge(&self, from: T, to: T) -> bool {
+        self.edges
+            .get(&from)
+            .map_or(false, |edges| edges.iter().any(|(target, _)| *target == to))
     }
 }
 
@@ -476,7 +489,7 @@ where
     ///
     /// ```rust
     /// use yagraphc::graph::UnGraphVecEdges;
-    /// use yagraphc::graph::traits::Graph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
     ///
     /// let mut graph = UnGraphVecEdges::default();
     ///
@@ -565,8 +578,14 @@ where
     pub fn new() -> Self {
         Self::default()
     }
+}
 
-    pub fn add_edge(&mut self, from: T, to: T, weight: W) {
+impl<T, W> GraphBuilding<T, W> for DiGraph<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy,
+{
+    fn add_edge(&mut self, from: T, to: T, weight: W) {
         self.edges.entry(from).or_default().insert(to, weight);
         self.in_edges.entry(to).or_default().insert(from, weight);
 
@@ -574,11 +593,11 @@ where
         self.add_node(to);
     }
 
-    pub fn add_node(&mut self, node: T) -> bool {
+    fn add_node(&mut self, node: T) -> bool {
         self.nodes.insert(node)
     }
 
-    pub fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
+    fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
         self.edges.get_mut(&from).ok_or(NodeNotFound)?.remove(&to);
         self.in_edges
             .get_mut(&to)
@@ -588,7 +607,7 @@ where
         Ok(())
     }
 
-    pub fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
+    fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
         if !self.nodes.remove(&node) {
             return Err(NodeNotFound);
         }
@@ -606,7 +625,7 @@ where
         Ok(())
     }
 
-    pub fn has_edge(&self, from: T, to: T) -> bool {
+    fn has_edge(&self, from: T, to: T) -> bool {
         self.edges
             .get(&from)
             .map_or(false, |edges| edges.contains_key(&to))
@@ -691,8 +710,14 @@ where
     pub fn new() -> Self {
         Self::default()
     }
+}
 
-    pub fn add_edge(&mut self, from: T, to: T, weight: W) {
+impl<T, W> GraphBuilding<T, W> for DiGraphVecEdges<T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone + Copy,
+{
+    fn add_edge(&mut self, from: T, to: T, weight: W) {
         self.edges.entry(from).or_default().push((to, weight));
         self.in_edges.entry(to).or_default().push((from, weight));
 
@@ -700,11 +725,11 @@ where
         self.nodes.insert(to);
     }
 
-    pub fn add_node(&mut self, node: T) -> bool {
+    fn add_node(&mut self, node: T) -> bool {
         self.nodes.insert(node)
     }
 
-    pub fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
+    fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound> {
         self.edges
             .get_mut(&from)
             .ok_or(NodeNotFound)?
@@ -718,7 +743,7 @@ where
         Ok(())
     }
 
-    pub fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
+    fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound> {
         if !self.nodes.remove(&node) {
             return Err(NodeNotFound);
         }
@@ -736,7 +761,7 @@ where
         Ok(())
     }
 
-    pub fn has_edge(&self, from: T, to: T) -> bool {
+    fn has_edge(&self, from: T, to: T) -> bool {
         self.edges
             .get(&from)
             .map_or(false, |edges| edges.iter().any(|(node, _)| *node == to))
