@@ -688,7 +688,7 @@ where
 {
     fn add_edge(&mut self, from: T, to: T, weight: W) {
         self.edges.entry(from).or_default().push((to, weight));
-        self.edges.entry(to).or_default().push((from, weight));
+        self.in_edges.entry(to).or_default().push((from, weight));
 
         self.nodes.insert(from);
         self.nodes.insert(to);
@@ -1117,6 +1117,13 @@ mod tests {
         graph.remove_node(0).unwrap();
         assert!(!graph.has_edge(0, 1));
 
+        graph.add_edge(0, 1, ());
+        graph.remove_edge(0, 1).unwrap();
+
+        assert!(!graph.has_edge(0, 1));
+        assert!(graph.nodes().any(|x| x == 0));
+        assert!(graph.nodes().any(|x| x == 1));
+
         let mut graph = DiGraphVecEdges::<i32, ()>::new();
         graph.add_node(0);
 
@@ -1135,5 +1142,12 @@ mod tests {
         assert!(graph.has_edge(0, 1));
         graph.remove_node(0).unwrap();
         assert!(!graph.has_edge(0, 1));
+
+        graph.add_edge(0, 1, ());
+        graph.remove_edge(0, 1).unwrap();
+
+        assert!(!graph.has_edge(0, 1));
+        assert!(graph.nodes().any(|x| x == 0));
+        assert!(graph.nodes().any(|x| x == 1));
     }
 }
