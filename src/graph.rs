@@ -789,6 +789,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_derives() {
+        let g = UnGraph::<(), ()>::new();
+        _ = g.clone();
+        dbg!(g);
+
+        let g = DiGraph::<(), ()>::new();
+        _ = g.clone();
+        dbg!(g);
+
+        let g = UnGraphVecEdges::<(), ()>::new();
+        _ = g.clone();
+        dbg!(g);
+
+        let g = DiGraphVecEdges::<(), ()>::new();
+        _ = g.clone();
+        dbg!(g);
+    }
+
+    #[test]
     fn test_dijkstra() {
         let mut graph = UnGraph::default();
 

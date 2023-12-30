@@ -6,7 +6,6 @@
 //! `ArithmeticallyWeightedGraph` is the main trait for working with path finding,
 //! such as Dijkstra's algorithm or A*. It is also intended to handle more general
 //! algorithms that rely on arithmetical weights in the future.
-
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -980,6 +979,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_error() {
+        let e = NodeNotFound;
+        dbg!(&e);
+    }
 
     #[test]
     fn test_queue_entry() {
