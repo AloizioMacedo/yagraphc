@@ -21,7 +21,7 @@ pub struct NodeNotFound;
 pub struct BfsIter<'a, T, W> {
     pub(crate) queue: VecDeque<(T, usize)>,
     pub(crate) visited: HashSet<T>,
-    pub(crate) graph: &'a dyn Graph<T, W>,
+    pub(crate) graph: &'a dyn Traversable<T, W>,
 }
 
 impl<'a, T, W> Iterator for BfsIter<'a, T, W>
@@ -56,7 +56,7 @@ where
 pub struct DfsIter<'a, T, W> {
     pub(crate) queue: VecDeque<(T, usize)>,
     pub(crate) visited: HashSet<T>,
-    pub(crate) graph: &'a dyn Graph<T, W>,
+    pub(crate) graph: &'a dyn Traversable<T, W>,
 }
 
 impl<'a, T, W> Iterator for DfsIter<'a, T, W>
@@ -97,7 +97,7 @@ impl<'a, T> PostOrderDfsIter<T>
 where
     T: Clone + Copy + Hash + PartialEq + Eq,
 {
-    pub fn new<W>(graph: &'a dyn Graph<T, W>, from: T) -> Self
+    pub fn new<W>(graph: &'a dyn Traversable<T, W>, from: T) -> Self
     where
         W: Clone + Copy,
     {
@@ -111,7 +111,7 @@ where
 }
 
 fn dfs_post_order<T, W>(
-    graph: &dyn Graph<T, W>,
+    graph: &dyn Traversable<T, W>,
     node: T,
     depth: usize,
     queue: &mut VecDeque<(T, usize)>,
@@ -206,23 +206,11 @@ where
     }
 }
 
-pub trait Graph<T, W>
+pub trait Traversable<T, W>
 where
     T: Clone + Copy + Eq + Hash + PartialEq,
     W: Clone + Copy,
 {
-    /// Adds edge to graph. Should add nodes if not present.
-    fn add_edge(&mut self, from: T, to: T, weight: W);
-
-    /// Adds node to graph.
-    fn add_node(&mut self, node: T) -> bool;
-
-    /// Removes edge from graph. Should not remove the nodes themselves.
-    fn remove_edge(&mut self, from: T, to: T) -> Result<(), NodeNotFound>;
-
-    /// Removes node from graph. Should remove all edges connected to the node.
-    fn remove_node(&mut self, node: T) -> Result<(), NodeNotFound>;
-
     /// Iterates over edges of the node as the target nodes and the edge weight.
     ///
     /// If the graph is undirected, should return the nodes that are connected to it by
@@ -286,30 +274,6 @@ where
     ///
     /// assert_eq!(edges.count(), 2);
     fn in_edges(&self, n: &T) -> EdgeIterType<T, W>;
-
-    /// Checks if there is an edge between two nodes.
-    ///
-    /// If the graph is undirected, should not take order into account.
-    ///
-    /// If the graph is direccted, takes it into consideration.
-    ///
-    /// # Examples
-    /// ```rust
-    /// use yagraphc::graph::{UnGraph, DiGraph};
-    /// use yagraphc::graph::traits::Graph;
-    ///
-    /// let mut graph = UnGraph::default();
-    ///
-    /// graph.add_edge(1, 2, ());
-    ///
-    /// assert!(graph.has_edge(1, 2) && graph.has_edge(2, 1));
-    ///
-    /// let mut graph = DiGraph::default();
-    ///
-    /// graph.add_edge(1, 2, ());
-    ///
-    /// assert!(graph.has_edge(1, 2) && !graph.has_edge(2, 1));
-    fn has_edge(&self, from: T, to: T) -> bool;
 
     /// Returns an iterator over all nodes.
     ///
@@ -677,7 +641,7 @@ where
     /// assert_eq!(graph.dijkstra(1, 5), None);
     fn dijkstra(&self, from: T, to: T) -> Option<W>
     where
-        Self: Graph<T, W>,
+        Self: Traversable<T, W>,
     {
         let mut visited = HashSet::new();
         let mut distances = HashMap::new();
@@ -750,7 +714,7 @@ where
     /// assert_eq!(graph.dijkstra_with_path(1, 5), None);
     fn dijkstra_with_path(&self, from: T, to: T) -> Option<(Vec<T>, W)>
     where
-        Self: Graph<T, W>,
+        Self: Traversable<T, W>,
     {
         let mut visited = HashSet::new();
         let mut distances = HashMap::new();
@@ -837,7 +801,7 @@ where
     /// assert_eq!(graph.a_star(1, 5, |_| 0), None);
     fn a_star<G>(&self, from: T, to: T, heuristic: G) -> Option<W>
     where
-        Self: Graph<T, W>,
+        Self: Traversable<T, W>,
         G: Fn(T) -> W,
     {
         let mut visited = HashSet::new();
@@ -909,7 +873,7 @@ where
     /// assert_eq!(graph.a_star_with_path(1, 5, |_| 0), None);
     fn a_star_with_path<G>(&self, from: T, to: T, heuristic: G) -> Option<(Vec<T>, W)>
     where
-        Self: Graph<T, W>,
+        Self: Traversable<T, W>,
         G: Fn(T) -> W,
     {
         let mut visited = HashSet::new();
