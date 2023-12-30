@@ -976,3 +976,22 @@ where
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_queue_entry() {
+        let queue_entry1 = QueueEntry {
+            node: 1,
+            cur_cost: 12,
+        };
+        let queue_entry2 = QueueEntry {
+            node: 4,
+            cur_cost: 12,
+        };
+
+        assert!(queue_entry1 == queue_entry2);
+    }
+}
