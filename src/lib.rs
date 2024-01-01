@@ -1,4 +1,4 @@
-//! # Introduction
+//! # YAGraphC
 //!
 //! Crate for working with Graph data structures and common algorithms on top of it.
 //!
