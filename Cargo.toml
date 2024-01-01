@@ -5,7 +5,7 @@ edition = "2021"
 description = "Crate for working with Graph data structures and common algorithms on top of it."
 readme = "README.md"
 license = "MIT"
-repository = "https://github.com/aloizio/yagraphc"
+repository = "https://github.com/AloizioMacedo/yagraphc"
 keywords = ["graph", "data-structure", "algorithm", "path", "mathematics"]
 categories = ["algorithms", "data-structures", "mathematics"]
 
