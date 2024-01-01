@@ -1,6 +1,6 @@
 [package]
 name = "yagraphc"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Crate for working with Graph data structures and common algorithms on top of it."
 readme = "README.md"
