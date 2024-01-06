@@ -489,6 +489,85 @@ where
         None
     }
 
+    /// Finds path from `from` to `to` using BFS while filtering edges.
+    ///
+    /// Returns `None` if there is no path.
+    ///
+    /// For an undirected graph, strive to make predicate(x,y) == predicate(y,x).
+    /// As of now, the order is related to the exploration direction of bfs,
+    /// but it is advisable not to rely on direction concepts on undirected graphs.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
+    /// let mut graph = UnGraph::default();
+
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    /// graph.add_edge(3, 4, ());
+    /// graph.add_edge(4, 5, ());
+
+    /// graph.add_edge(1, 7, ());
+    /// graph.add_edge(7, 5, ());
+
+    /// let path = graph.find_path(1, 5).unwrap();
+
+    /// assert_eq!(path, vec![1, 7, 5]);
+
+    /// let path = graph
+    ///     .find_path_filter_edges(1, 5, |x, y| (x, y) != (1, 7))
+    ///     .unwrap();
+
+    /// assert_eq!(path, vec![1, 2, 3, 4, 5]);
+    fn find_path_filter_edges<G>(&self, from: T, to: T, predicate: G) -> Option<Vec<T>>
+    where
+        Self: Sized,
+        G: Fn(T, T) -> bool,
+    {
+        let mut visited = HashSet::new();
+        let mut pairs = HashMap::new();
+        let mut queue = VecDeque::new();
+
+        queue.push_back((from, from));
+
+        while let Some((prev, current)) = queue.pop_front() {
+            if visited.contains(&current) {
+                continue;
+            }
+            visited.insert(current);
+            pairs.insert(current, prev);
+
+            if current == to {
+                let mut node = current;
+
+                let mut path = Vec::new();
+                while node != from {
+                    path.push(node);
+
+                    node = pairs[&node];
+                }
+
+                path.push(from);
+
+                path.reverse();
+
+                return Some(path);
+            }
+
+            for (target, _) in self.edges(&current) {
+                if visited.contains(&target) || !predicate(current, target) {
+                    continue;
+                }
+
+                queue.push_back((current, target));
+            }
+        }
+
+        None
+    }
+
     /// Returns a list of connected components of the graph.
     ///
     /// If being used in a directed graph, those are the strongly connected components,

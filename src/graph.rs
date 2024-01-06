@@ -943,6 +943,29 @@ mod tests {
     }
 
     #[test]
+    fn test_find_path_filter_edges() {
+        let mut graph = UnGraph::default();
+
+        graph.add_edge(1, 2, ());
+        graph.add_edge(2, 3, ());
+        graph.add_edge(3, 4, ());
+        graph.add_edge(4, 5, ());
+
+        graph.add_edge(1, 7, ());
+        graph.add_edge(7, 5, ());
+
+        let path = graph.find_path(1, 5).unwrap();
+
+        assert_eq!(path, vec![1, 7, 5]);
+
+        let path = graph
+            .find_path_filter_edges(1, 5, |x, y| (x, y) != (1, 7))
+            .unwrap();
+
+        assert_eq!(path, vec![1, 2, 3, 4, 5]);
+    }
+
+    #[test]
     fn test_dijkstra_str() {
         let mut graph = DiGraph::default();
 
