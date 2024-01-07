@@ -1044,6 +1044,8 @@ where
 
     /// Runs the Edmonds-Karp algorithm on the graph to find max flow.
     ///
+    /// Assumes the edge weights are the capacities.
+    ///
     /// Returns a HashMap with the flow values for each edge.
     ///
     /// Please select a number type for W which allows for subtraction
