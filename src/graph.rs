@@ -876,6 +876,64 @@ where
     pub fn new() -> Self {
         Self::default()
     }
+
+    fn bidir_find_path_filter_edges<G>(
+        &self,
+        from: T,
+        to: T,
+        predicate: G,
+    ) -> Option<Vec<(T, Orientation)>>
+    where
+        G: Fn(T, T, Orientation) -> bool,
+    {
+        let mut visited = HashSet::new();
+        let mut pairs = HashMap::new();
+        let mut queue = VecDeque::new();
+
+        queue.push_back((from, from, Orientation::Correct));
+
+        while let Some((prev, current, orientation)) = queue.pop_front() {
+            if visited.contains(&current) {
+                continue;
+            }
+            visited.insert(current);
+            pairs.insert(current, (prev, orientation));
+
+            if current == to {
+                let mut node = (current, orientation);
+
+                let mut path = Vec::new();
+                while node.0 != from {
+                    path.push((node.0, pairs[&node.0].1));
+
+                    node = pairs[&node.0];
+                }
+
+                path.push((node.0, pairs[&node.0].1));
+
+                path.reverse();
+
+                return Some(path);
+            }
+
+            for (target, _) in self.edges(&current) {
+                if visited.contains(&target) || !predicate(current, target, Orientation::Correct) {
+                    continue;
+                }
+
+                queue.push_back((current, target, Orientation::Correct));
+            }
+            for (target, _) in self.in_edges(&current) {
+                if visited.contains(&target) || !predicate(current, target, Orientation::Inverted) {
+                    continue;
+                }
+
+                queue.push_back((current, target, Orientation::Inverted));
+            }
+        }
+
+        None
+    }
 }
 
 impl<T, W> GraphBuilding<T, W> for DiGraphVecEdges<T, W>
@@ -994,6 +1052,42 @@ where
         + Ord
         + Default,
 {
+    fn edmonds_karp(&self, source: T, sink: T) -> HashMap<(T, T), W> {
+        let flows = HashMap::new();
+
+        let mut residual_obtension = ResidualNetwork { flows, graph: self };
+
+        while let Some(path) = self.bidir_find_path_filter_edges(source, sink, |x, y, _| {
+            residual_obtension.get_residual_capacity(x, y) > W::default()
+        }) {
+            let residuals_in_path = path
+                .iter()
+                .zip(&path[1..])
+                .map(|(&(x, _), &(y, _))| residual_obtension.get_residual_capacity(x, y));
+
+            let min_res = residuals_in_path.min().expect("Path should not be empty");
+
+            path.iter().zip(&path[1..]).for_each(|(&(x, _), &(y, _))| {
+                residual_obtension
+                    .flows
+                    .entry((x, y))
+                    .and_modify(|v| *v = *v + min_res)
+                    .or_insert(min_res);
+                residual_obtension
+                    .flows
+                    .entry((y, x))
+                    .and_modify(|v| *v = *v - min_res)
+                    .or_insert(W::default() - min_res);
+            });
+
+            residual_obtension = ResidualNetwork {
+                flows: residual_obtension.flows,
+                graph: self,
+            };
+        }
+
+        residual_obtension.flows
+    }
 }
 
 #[cfg(test)]
@@ -1528,6 +1622,30 @@ mod tests {
     #[test]
     fn test_edmonds_karp_directed() {
         let mut g = DiGraph::new();
+
+        g.add_edge("C", "A", 3);
+        g.add_edge("C", "D", 1);
+        g.add_edge("C", "E", 2);
+
+        g.add_edge("B", "C", 4);
+
+        g.add_edge("A", "B", 3);
+        g.add_edge("A", "D", 3);
+
+        g.add_edge("D", "E", 2);
+        g.add_edge("D", "F", 6);
+
+        g.add_edge("E", "G", 1);
+
+        g.add_edge("F", "G", 9);
+
+        let flows = g.edmonds_karp("A", "G");
+
+        assert_eq!(*flows.get(&("E", "G")).unwrap_or(&0), 1);
+        assert_eq!(*flows.get(&("F", "G")).unwrap_or(&0), 4);
+
+        // Same test but with DiGraphVecEdges.
+        let mut g = DiGraphVecEdges::new();
 
         g.add_edge("C", "A", 3);
         g.add_edge("C", "D", 1);
