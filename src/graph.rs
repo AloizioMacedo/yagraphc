@@ -786,6 +786,32 @@ where
         + Ord
         + Default,
 {
+    /// Runs the Edmonds-Karp algorithm on the graph to find max flow.
+    ///
+    /// Returns a HashMap with the flow values for each edge.
+    ///
+    /// Please select a number type for W which allows for subtraction
+    /// and negative values, otherwise there may be undefined behavior.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::{ArithmeticallyWeightedGraph, GraphBuilding, Traversable};
+    ///
+    /// let mut graph = UnGraph::new();
+    /// graph.add_edge(1, 2, 1000);
+    /// graph.add_edge(2, 4, 1000);
+    /// graph.add_edge(1, 3, 1000);
+    /// graph.add_edge(3, 4, 1000);
+    ///
+    /// graph.add_edge(2, 3, 1);
+    ///
+    /// let flows = graph.edmonds_karp(1, 4);
+    /// assert_eq!(*flows.get(&(1, 2)).unwrap(), 1000);
+    /// assert_eq!(*flows.get(&(1, 3)).unwrap(), 1000);
+    ///
+    /// assert_eq!(*flows.get(&(2, 3)).unwrap_or(&0), 0);
     fn edmonds_karp(&self, source: T, sink: T) -> HashMap<(T, T), W> {
         let flows = HashMap::new();
 
@@ -1052,6 +1078,32 @@ where
         + Ord
         + Default,
 {
+    /// Runs the Edmonds-Karp algorithm on the graph to find max flow.
+    ///
+    /// Returns a HashMap with the flow values for each edge.
+    ///
+    /// Please select a number type for W which allows for subtraction
+    /// and negative values, otherwise there may be undefined behavior.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::{ArithmeticallyWeightedGraph, GraphBuilding, Traversable};
+    ///
+    /// let mut graph = UnGraph::new();
+    /// graph.add_edge(1, 2, 1000);
+    /// graph.add_edge(2, 4, 1000);
+    /// graph.add_edge(1, 3, 1000);
+    /// graph.add_edge(3, 4, 1000);
+    ///
+    /// graph.add_edge(2, 3, 1);
+    ///
+    /// let flows = graph.edmonds_karp(1, 4);
+    /// assert_eq!(*flows.get(&(1, 2)).unwrap(), 1000);
+    /// assert_eq!(*flows.get(&(1, 3)).unwrap(), 1000);
+    ///
+    /// assert_eq!(*flows.get(&(2, 3)).unwrap_or(&0), 0);
     fn edmonds_karp(&self, source: T, sink: T) -> HashMap<(T, T), W> {
         let flows = HashMap::new();
 
