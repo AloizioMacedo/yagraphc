@@ -258,6 +258,8 @@ where
     /// assert_eq!(edges.count(), 1);
     fn edges(&self, n: &T) -> EdgeIterType<T, W>;
 
+    fn edge_weight(&self, from: T, to: T) -> Result<W, NodeNotFound>;
+
     /// Iterates over inbound-edges of the node as the target nodes and the edge weight.
     ///
     /// If the graph is undirected, should return the nodes that are connected to it by
@@ -714,7 +716,13 @@ where
 pub trait ArithmeticallyWeightedGraph<T, W>
 where
     T: Clone + Copy + Eq + Hash + PartialEq,
-    W: Clone + Copy + std::ops::Add<Output = W> + PartialOrd + Ord + Default,
+    W: Clone
+        + Copy
+        + std::ops::Add<Output = W>
+        + std::ops::Sub<Output = W>
+        + PartialOrd
+        + Ord
+        + Default,
 {
     /// Returns the shortest length among paths from `from` to `to`.
     ///
@@ -1032,6 +1040,70 @@ where
         }
 
         None
+    }
+
+    fn edmonds_karp(&self, source: T, sink: T) -> HashMap<(T, T), W>
+    where
+        Self: Traversable<T, W> + Sized,
+    {
+        let flows = HashMap::new();
+
+        let mut residual_obtension = ResidualNetwork { flows, graph: self };
+
+        while let Some(path) = self.find_path_filter_edges(source, sink, |x, y| {
+            residual_obtension.get_residual_capacity(x, y) > W::default()
+        }) {
+            let residuals_in_path = path
+                .iter()
+                .zip(&path[1..])
+                .map(|(&x, &y)| residual_obtension.get_residual_capacity(x, y));
+
+            let min_res = residuals_in_path.min().expect("Path should not be empty");
+
+            path.iter().zip(&path[1..]).for_each(|(&x, &y)| {
+                residual_obtension
+                    .flows
+                    .entry((x, y))
+                    .and_modify(|v| *v = *v + min_res)
+                    .or_insert(min_res);
+                residual_obtension
+                    .flows
+                    .entry((y, x))
+                    .and_modify(|v| *v = *v - min_res)
+                    .or_insert(W::default() - min_res);
+            });
+
+            residual_obtension = ResidualNetwork {
+                flows: residual_obtension.flows,
+                graph: self,
+            };
+        }
+
+        residual_obtension.flows
+    }
+}
+
+struct ResidualNetwork<'a, T, W> {
+    flows: HashMap<(T, T), W>,
+    graph: &'a dyn Traversable<T, W>,
+}
+
+impl<'a, T, W> ResidualNetwork<'a, T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone
+        + Copy
+        + std::ops::Add<Output = W>
+        + std::ops::Sub<Output = W>
+        + PartialOrd
+        + Ord
+        + Default,
+{
+    fn get_residual_capacity(&self, s: T, t: T) -> W {
+        self.graph
+            .edge_weight(s, t)
+            .expect("Should only be considering existing edges")
+            - self.flows.get(&(s, t)).copied().unwrap_or(W::default())
     }
 }
 
