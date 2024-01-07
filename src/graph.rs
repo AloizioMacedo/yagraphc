@@ -1617,6 +1617,30 @@ mod tests {
 
         assert_eq!(*flows.get(&("B", "D")).unwrap(), 1000);
         assert_eq!(*flows.get(&("C", "D")).unwrap(), 1000);
+
+        let mut g = UnGraph::new();
+
+        g.add_edge("C", "A", 3);
+        g.add_edge("C", "D", 1);
+        g.add_edge("C", "E", 2);
+
+        g.add_edge("B", "C", 4);
+
+        g.add_edge("A", "B", 3);
+        g.add_edge("A", "D", 3);
+
+        g.add_edge("D", "E", 2);
+        g.add_edge("D", "F", 6);
+
+        g.add_edge("E", "G", 1);
+        g.add_edge("E", "B", 1);
+
+        g.add_edge("F", "G", 9);
+
+        let flows = g.edmonds_karp("A", "G");
+
+        assert_eq!(*flows.get(&("E", "G")).unwrap_or(&0), 1);
+        assert_eq!(*flows.get(&("F", "G")).unwrap_or(&0), 6);
     }
 
     #[test]
@@ -1636,6 +1660,7 @@ mod tests {
         g.add_edge("D", "F", 6);
 
         g.add_edge("E", "G", 1);
+        g.add_edge("E", "B", 1);
 
         g.add_edge("F", "G", 9);
 
@@ -1660,6 +1685,7 @@ mod tests {
         g.add_edge("D", "F", 6);
 
         g.add_edge("E", "G", 1);
+        g.add_edge("E", "B", 1);
 
         g.add_edge("F", "G", 9);
 
