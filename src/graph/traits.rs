@@ -258,6 +258,8 @@ where
     /// assert_eq!(edges.count(), 1);
     fn edges(&self, n: &T) -> EdgeIterType<T, W>;
 
+    fn edge_weight(&self, from: T, to: T) -> Result<W, NodeNotFound>;
+
     /// Iterates over inbound-edges of the node as the target nodes and the edge weight.
     ///
     /// If the graph is undirected, should return the nodes that are connected to it by
@@ -489,6 +491,85 @@ where
         None
     }
 
+    /// Finds path from `from` to `to` using BFS while filtering edges.
+    ///
+    /// Returns `None` if there is no path.
+    ///
+    /// For an undirected graph, strive to make predicate(x,y) == predicate(y,x).
+    /// As of now, the order is related to the exploration direction of bfs,
+    /// but it is advisable not to rely on direction concepts on undirected graphs.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::{GraphBuilding, Traversable};
+    /// let mut graph = UnGraph::default();
+
+    /// graph.add_edge(1, 2, ());
+    /// graph.add_edge(2, 3, ());
+    /// graph.add_edge(3, 4, ());
+    /// graph.add_edge(4, 5, ());
+
+    /// graph.add_edge(1, 7, ());
+    /// graph.add_edge(7, 5, ());
+
+    /// let path = graph.find_path(1, 5).unwrap();
+
+    /// assert_eq!(path, vec![1, 7, 5]);
+
+    /// let path = graph
+    ///     .find_path_filter_edges(1, 5, |x, y| (x, y) != (1, 7))
+    ///     .unwrap();
+
+    /// assert_eq!(path, vec![1, 2, 3, 4, 5]);
+    fn find_path_filter_edges<G>(&self, from: T, to: T, predicate: G) -> Option<Vec<T>>
+    where
+        Self: Sized,
+        G: Fn(T, T) -> bool,
+    {
+        let mut visited = HashSet::new();
+        let mut pairs = HashMap::new();
+        let mut queue = VecDeque::new();
+
+        queue.push_back((from, from));
+
+        while let Some((prev, current)) = queue.pop_front() {
+            if visited.contains(&current) {
+                continue;
+            }
+            visited.insert(current);
+            pairs.insert(current, prev);
+
+            if current == to {
+                let mut node = current;
+
+                let mut path = Vec::new();
+                while node != from {
+                    path.push(node);
+
+                    node = pairs[&node];
+                }
+
+                path.push(from);
+
+                path.reverse();
+
+                return Some(path);
+            }
+
+            for (target, _) in self.edges(&current) {
+                if visited.contains(&target) || !predicate(current, target) {
+                    continue;
+                }
+
+                queue.push_back((current, target));
+            }
+        }
+
+        None
+    }
+
     /// Returns a list of connected components of the graph.
     ///
     /// If being used in a directed graph, those are the strongly connected components,
@@ -635,7 +716,13 @@ where
 pub trait ArithmeticallyWeightedGraph<T, W>
 where
     T: Clone + Copy + Eq + Hash + PartialEq,
-    W: Clone + Copy + std::ops::Add<Output = W> + PartialOrd + Ord + Default,
+    W: Clone
+        + Copy
+        + std::ops::Add<Output = W>
+        + std::ops::Sub<Output = W>
+        + PartialOrd
+        + Ord
+        + Default,
 {
     /// Returns the shortest length among paths from `from` to `to`.
     ///
@@ -953,6 +1040,98 @@ where
         }
 
         None
+    }
+
+    /// Runs the Edmonds-Karp algorithm on the graph to find max flow.
+    ///
+    /// Assumes the edge weights are the capacities.
+    ///
+    /// Returns a HashMap with the flow values for each edge.
+    ///
+    /// Please select a number type for W which allows for subtraction
+    /// and negative values, otherwise there may be undefined behavior.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use yagraphc::graph::UnGraph;
+    /// use yagraphc::graph::traits::{ArithmeticallyWeightedGraph, GraphBuilding, Traversable};
+    ///
+    /// let mut graph = UnGraph::new();
+    /// graph.add_edge(1, 2, 1000);
+    /// graph.add_edge(2, 4, 1000);
+    /// graph.add_edge(1, 3, 1000);
+    /// graph.add_edge(3, 4, 1000);
+    ///
+    /// graph.add_edge(2, 3, 1);
+    ///
+    /// let flows = graph.edmonds_karp(1, 4);
+    /// assert_eq!(*flows.get(&(1, 2)).unwrap(), 1000);
+    /// assert_eq!(*flows.get(&(1, 3)).unwrap(), 1000);
+    ///
+    /// assert_eq!(*flows.get(&(2, 3)).unwrap_or(&0), 0);
+    fn edmonds_karp(&self, source: T, sink: T) -> HashMap<(T, T), W>
+    where
+        Self: Traversable<T, W> + Sized,
+    {
+        let flows = HashMap::new();
+
+        let mut residual_obtension = ResidualNetwork { flows, graph: self };
+
+        while let Some(path) = self.find_path_filter_edges(source, sink, |x, y| {
+            residual_obtension.get_residual_capacity(x, y) > W::default()
+        }) {
+            let residuals_in_path = path
+                .iter()
+                .zip(&path[1..])
+                .map(|(&x, &y)| residual_obtension.get_residual_capacity(x, y));
+
+            let min_res = residuals_in_path.min().expect("Path should not be empty");
+
+            path.iter().zip(&path[1..]).for_each(|(&x, &y)| {
+                residual_obtension
+                    .flows
+                    .entry((x, y))
+                    .and_modify(|v| *v = *v + min_res)
+                    .or_insert(min_res);
+                residual_obtension
+                    .flows
+                    .entry((y, x))
+                    .and_modify(|v| *v = *v - min_res)
+                    .or_insert(W::default() - min_res);
+            });
+
+            residual_obtension = ResidualNetwork {
+                flows: residual_obtension.flows,
+                graph: self,
+            };
+        }
+
+        residual_obtension.flows
+    }
+}
+
+struct ResidualNetwork<'a, T, W> {
+    flows: HashMap<(T, T), W>,
+    graph: &'a dyn Traversable<T, W>,
+}
+
+impl<'a, T, W> ResidualNetwork<'a, T, W>
+where
+    T: Clone + Copy + Eq + Hash + PartialEq,
+    W: Clone
+        + Copy
+        + std::ops::Add<Output = W>
+        + std::ops::Sub<Output = W>
+        + PartialOrd
+        + Ord
+        + Default,
+{
+    fn get_residual_capacity(&self, s: T, t: T) -> W {
+        self.graph
+            .edge_weight(s, t)
+            .expect("Should only be considering existing edges")
+            - self.flows.get(&(s, t)).copied().unwrap_or(W::default())
     }
 }
 
